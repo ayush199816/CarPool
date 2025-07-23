@@ -116,23 +116,63 @@ const VerificationScreen = () => {
   
   const uploadDocument = useCallback(async (uri: string, documentType: DocumentType): Promise<string | null> => {
     try {
-      setIsLoading(true);
+      if (!user?.name) {
+        console.error('No user name found in context');
+        showMessage('User information not found. Please log in again.');
+        return null;
+      }
+
       const formData = new FormData();
-      const filename = uri.split('/').pop();
-      const match = /\.(\w+)$/.exec(filename || '');
-      const fileType = match ? `image/${match[1]}` : 'image';
-      
-      // @ts-ignore - FormData.append expects Blob/File, but Expo's asset URI works
-      formData.append('file', {
-        uri,
-        name: filename,
-        type: fileType,
-      });
-      
-      // Determine upload type based on document type
+      const fileExtension = uri.split('.').pop() || 'jpeg';
       const uploadType = documentType === 'rc' ? 'vehicle' : 'user';
+      const timestamp = Date.now();
       
-      // Pass the upload type to handle different storage paths
+      // Get the username from user context
+      const userName = user.name;
+      const sanitizedUsername = userName.replace(/[^a-z0-9]/gi, '-').toLowerCase();
+      const fileName = `${sanitizedUsername}-${uploadType}-${timestamp}.${fileExtension}`;
+
+      // Create a file object with the correct format for React Native
+      const file = {
+        uri,
+        name: fileName,
+        type: `image/${fileExtension}`,
+      };
+
+      // Log what we're about to send
+      console.log('Preparing to upload file:', {
+        fileName,
+        fileType: `image/${fileExtension}`,
+        uploadType,
+        userName
+      });
+
+      // Append the file with the correct field name
+      // @ts-ignore - React Native FormData requires this format
+      formData.append('file', file);
+
+      // Append other fields as strings
+      formData.append('uploadType', uploadType);
+      formData.append('userName', userName);
+      
+      // Log the form data entries for debugging
+      console.log('Form data entries:');
+      // @ts-ignore - entries() exists in React Native
+      for (const [key, value] of formData._parts) {
+        console.log(`${key}:`, value);
+      }
+      console.log('Uploading file with data:', {
+        fileName,
+        uploadType,
+        userName,
+        fileType: `image/${fileExtension}`,
+        formData: {
+          hasFile: formData.get('file') !== null,
+          hasUploadType: formData.get('uploadType') === uploadType,
+          hasUserName: formData.get('userName') === userName
+        }
+      });
+
       const response = await uploadFile(formData, uploadType);
       return response.fileUrl;
     } catch (error) {

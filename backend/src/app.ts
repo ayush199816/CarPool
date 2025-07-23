@@ -4,6 +4,7 @@ import connectDB from './config/db';
 import rideRoutes from './routes/rideRoutes';
 import authRoutes from './routes/authRoutes';
 import bookingRoutes from './routes/bookingRoutes';
+import verificationRoutes from './routes/verificationRoutes';
 import dotenv from 'dotenv';
 import path from 'path';
 
@@ -61,10 +62,14 @@ app.get('/health', (req: Request, res: Response) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Serve uploaded files statically
+app.use('/uploads', express.static(path.join(__dirname, '..', '..', 'uploads')));
+
 // API Routes
 app.use('/api/rides', rideRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api', bookingRoutes);
+app.use('/api', verificationRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
