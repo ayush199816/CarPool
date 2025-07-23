@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Linking, ActivityIndicator, Image, Modal, TextInput } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -38,6 +38,16 @@ const RideDetailsScreen = () => {
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [seatsToBook, setSeatsToBook] = useState('1');
   const [selectedRequest, setSelectedRequest] = useState<BookingRequest | null>(null);
+  
+  // Check if current user has a confirmed booking for this ride
+  const hasConfirmedBooking = useMemo(() => {
+    if (!user?._id || !ride?.bookingRequests?.length) return false;
+    
+    return ride.bookingRequests.some((request: any) => 
+      (request.userId?._id === user._id || request.userId === user._id) && 
+      request.status === 'accepted'
+    );
+  }, [user?._id, ride?.bookingRequests]);
 
   useEffect(() => {
     const loadRideDetails = async () => {
@@ -568,7 +578,11 @@ const RideDetailsScreen = () => {
       </View>
 
       <View style={styles.driverSection}>
-        <Text style={styles.sectionTitle}>Driver Information</Text>
+        <View style={styles.sectionHeader}>
+          <Ionicons name="person-circle-outline" size={20} color="#4A6FA5" />
+          <Text style={styles.sectionTitle}>Driver Information</Text>
+        </View>
+        
         <View style={styles.driverInfo}>
           <View style={styles.avatar}>
             {ride.driver?.avatar ? (
@@ -583,25 +597,38 @@ const RideDetailsScreen = () => {
               </View>
             )}
           </View>
+          
           <View style={styles.driverDetails}>
             <Text style={styles.driverName}>
               {ride.driver?.name || 'Driver'}
             </Text>
             
-            {ride.driver?.email && (
-              <View style={styles.driverDetailRow}>
-                <Ionicons name="mail" size={16} color="#666" style={styles.detailIcon} />
-                <Text style={styles.driverDetailText}>
-                  {ride.driver.email}
-                </Text>
-              </View>
-            )}
-            
-            {ride.driver?.phone && (
-              <View style={styles.driverDetailRow}>
-                <Ionicons name="call" size={16} color="#666" style={styles.detailIcon} />
-                <Text style={styles.driverDetailText}>
-                  {ride.driver.phone}
+            {/* Only show contact info if the user has a confirmed booking */}
+            {hasConfirmedBooking ? (
+              <>
+                {ride.driver?.email && (
+                  <View style={styles.driverDetailRow}>
+                    <Ionicons name="mail" size={16} color="#4A6FA5" style={styles.detailIcon} />
+                    <Text style={styles.driverDetailText}>
+                      {ride.driver.email}
+                    </Text>
+                  </View>
+                )}
+                
+                {ride.driver?.phone && (
+                  <View style={styles.driverDetailRow}>
+                    <Ionicons name="call" size={16} color="#4A6FA5" style={styles.detailIcon} />
+                    <Text style={styles.driverDetailText}>
+                      {ride.driver.phone}
+                    </Text>
+                  </View>
+                )}
+              </>
+            ) : (
+              <View style={styles.pendingApprovalContainer}>
+                <Ionicons name="time-outline" size={16} color="#FFA500" />
+                <Text style={styles.pendingApprovalText}>
+                  Contact information will be available after your booking is confirmed
                 </Text>
               </View>
             )}
@@ -774,6 +801,23 @@ const styles = StyleSheet.create({
   rejectedText: {
     color: '#9E9E9E',
     textDecorationLine: 'line-through',
+  },
+  // Pending Approval Styles
+  pendingApprovalContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 10,
+    padding: 12,
+    backgroundColor: '#FFF8E1',
+    borderRadius: 8,
+    borderLeftWidth: 4,
+    borderLeftColor: '#FFC107',
+  },
+  pendingApprovalText: {
+    marginLeft: 8,
+    color: '#FF8F00',
+    fontSize: 14,
+    flex: 1,
   },
   // Modal Styles
   modalTitle: {
