@@ -1,4 +1,5 @@
 import { API_URL } from '../Config';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface ApiResponse<T = any> {
   success: boolean;
@@ -11,17 +12,59 @@ type UploadType = 'user' | 'vehicle';
 
 export const uploadFile = async (formData: FormData, type: UploadType = 'user'): Promise<{ fileUrl: string }> => {
   try {
-    // Add upload type to form data
-    formData.append('uploadType', type);
+    // Create a new FormData instance to ensure clean data
+    const newFormData = new FormData();
+    
+    // Copy all entries from the original formData
+    // @ts-ignore - entries() exists on FormData in modern browsers
+    for (const [key, value] of formData.entries()) {
+      // Skip any existing uploadType to avoid duplicates
+      if (key === 'uploadType') continue;
+      newFormData.append(key, value);
+    }
+    
+    // Ensure uploadType is set
+    newFormData.append('uploadType', type);
+    
+    // Log form data entries for debugging
+    const formDataEntries: Record<string, any> = {};
+    // @ts-ignore - entries() exists on FormData in modern browsers
+    for (const [key, value] of newFormData.entries()) {
+      formDataEntries[key] = value;
+    }
     
     const uploadUrl = `${API_URL}/upload`;
     console.log('Attempting to upload file to:', uploadUrl);
     console.log('Upload type:', type);
+    console.log('Form data entries:', formDataEntries);
     
-    // Don't set Content-Type header - let the browser set it with the correct boundary
-    const response = await fetch(uploadUrl, {
+    // Get the auth token
+    const token = await getAuthToken();
+    
+    const headers: HeadersInit = {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    
+    // Important: Let the browser set the Content-Type with the boundary
+    // Don't set Content-Type manually when sending FormData
+    
+    console.log('Request headers:', headers);
+    
+    // Log the actual content being sent
+    console.log('Sending form data with entries:');
+    // @ts-ignore
+    for (const [key, value] of newFormData.entries()) {
+      console.log(`${key}:`, value);
+    }
+    
+    const response = await fetch(`${API_URL}/upload`, {
       method: 'POST',
-      body: formData,
+      headers: {
+        'Authorization': `Bearer ${await getAuthToken()}`,
+        // Let the browser set the Content-Type with the correct boundary
+      },
+      body: newFormData,
     });
 
     console.log('Upload response status:', response.status);
@@ -32,18 +75,18 @@ export const uploadFile = async (formData: FormData, type: UploadType = 'user'):
       throw new Error(`Upload failed with status ${response.status}: ${errorText}`);
     }
 
-    const result: ApiResponse<{ fileUrl: string }> = await response.json();
+    const result = await response.json();
     console.log('Upload successful, response:', result);
 
     if (!result.success) {
-      throw new Error(result.error || 'Server returned unsuccessful response');
+      throw new Error(result.message || 'Server returned unsuccessful response');
     }
 
-    if (!result.data?.fileUrl) {
+    if (!result.fileUrl) {
       throw new Error('No file URL returned from server');
     }
 
-    return { fileUrl: result.data.fileUrl };
+    return { fileUrl: result.fileUrl };
   } catch (error: unknown) {
     console.error('API Error details:', {
       name: error instanceof Error ? error.name : 'Unknown',
@@ -52,6 +95,17 @@ export const uploadFile = async (formData: FormData, type: UploadType = 'user'):
       type: typeof error,
     });
     throw new Error(`Failed to upload file: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+};
+
+// Get the authentication token from AsyncStorage
+const getAuthToken = async (): Promise<string | null> => {
+  try {
+    const token = await AsyncStorage.getItem('userToken');
+    return token;
+  } catch (error) {
+    console.error('Error getting auth token:', error);
+    return null;
   }
 };
 
