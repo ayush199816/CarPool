@@ -27,6 +27,10 @@ export type AppStackParamList = {
   
   // Verification
   Verification: { type: 'user' | 'vehicle' };
+  
+  // Vehicle Management
+  AddVehicle: undefined;
+  VehicleList: undefined;
 };
 
 // Define the root stack param list with all possible screens
@@ -80,6 +84,10 @@ export const SCREENS = {
   RIDE_DETAILS: 'RideDetails',
   EDIT_RIDE: 'EditRide',
   VERIFICATION: 'Verification',
+  
+  // Vehicle Management
+  ADD_VEHICLE: 'AddVehicle',
+  VEHICLE_LIST: 'VehicleList',
 } as const;
 
 // Common navigation options

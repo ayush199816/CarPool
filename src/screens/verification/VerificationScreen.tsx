@@ -337,104 +337,6 @@ const VerificationScreen = () => {
     </View>
   );
 
-  const renderVehicleVerification = () => (
-    <View style={styles.section}>
-      <Text style={styles.sectionTitle}>Add Vehicle</Text>
-      
-      <TextInput
-        label="Vehicle Number"
-        value={currentVehicle.number}
-        onChangeText={(text) => setCurrentVehicle({...currentVehicle, number: text})}
-        style={styles.input}
-        mode="outlined"
-      />
-      
-      <View style={styles.pickerContainer}>
-        <Text style={styles.pickerLabel}>Vehicle Type</Text>
-        <View style={styles.pickerOptions}>
-          {(['Car', 'Bike', 'Scooty'] as VehicleType[]).map((vehicleType) => (
-            <TouchableOpacity
-              key={vehicleType}
-              style={[
-                styles.pickerOption,
-                currentVehicle.type === vehicleType && styles.pickerOptionSelected,
-              ]}
-              onPress={() => setCurrentVehicle({...currentVehicle, type: vehicleType})}
-            >
-              <Text style={currentVehicle.type === vehicleType ? styles.pickerOptionTextSelected : styles.pickerOptionText}>
-                {vehicleType}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
-      
-      <TextInput
-        label="Company"
-        value={currentVehicle.company}
-        onChangeText={(text) => setCurrentVehicle({...currentVehicle, company: text})}
-        style={styles.input}
-        mode="outlined"
-      />
-      
-      <TextInput
-        label="Model"
-        value={currentVehicle.model}
-        onChangeText={(text) => setCurrentVehicle({...currentVehicle, model: text})}
-        style={styles.input}
-        mode="outlined"
-      />
-      
-      <TextInput
-        label="Color"
-        value={currentVehicle.color}
-        onChangeText={(text) => setCurrentVehicle({...currentVehicle, color: text})}
-        style={styles.input}
-        mode="outlined"
-      />
-      
-      <TouchableOpacity 
-        style={styles.uploadButton}
-        onPress={() => pickImage((uri) => setCurrentVehicle({...currentVehicle, rcDocument: uri}))}
-      >
-        <Ionicons name="document-attach-outline" size={32} color="#007AFF" />
-        <Text style={styles.uploadButtonText}>
-          {currentVehicle.rcDocument ? 'RC Uploaded' : 'Upload Registration Certificate (RC)'}
-        </Text>
-        {currentVehicle.rcDocument && <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />}
-      </TouchableOpacity>
-      
-      <Button 
-        mode="contained" 
-        onPress={handleAddVehicle}
-        style={styles.addButton}
-        labelStyle={styles.addButtonLabel}
-      >
-        Add Vehicle
-      </Button>
-      
-      {vehicles.length > 0 && (
-        <View style={styles.vehiclesList}>
-          <Text style={styles.vehiclesListTitle}>Your Vehicles ({vehicles.length}/5)</Text>
-          {vehicles.map((vehicle) => (
-            <View key={vehicle.id} style={styles.vehicleItem}> {/* Using vehicle.id as key */}
-              <Ionicons name="car-sport" size={24} color="#007AFF" />
-              <View style={styles.vehicleDetails}>
-                <Text style={styles.vehicleName}>{vehicle.company} {vehicle.model}</Text>
-                <Text style={styles.vehicleNumber}>{vehicle.number}</Text>
-              </View>
-              {vehicle.verified ? (
-                <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
-              ) : (
-                <Ionicons name="time-outline" size={24} color="#FFA500" /> // Indicates pending verification
-              )}
-            </View>
-          ))}
-        </View>
-      )}
-    </View>
-  );
-
   const renderLoadingOverlay = () => (
     <View style={styles.loadingOverlay}>
       <ActivityIndicator size="large" color="#007AFF" />
@@ -445,7 +347,7 @@ const VerificationScreen = () => {
   return (
     <View style={styles.container}>
       <ScrollView style={styles.scrollView}>
-        {type === 'user' ? renderUserVerification() : renderVehicleVerification()}
+        {type === 'user' ? renderUserVerification() : null}
       </ScrollView>
       
       <View style={styles.footer}>

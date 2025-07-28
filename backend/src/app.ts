@@ -5,6 +5,7 @@ import rideRoutes from './routes/rideRoutes';
 import authRoutes from './routes/authRoutes';
 import bookingRoutes from './routes/bookingRoutes';
 import verificationRoutes from './routes/verificationRoutes';
+import vehicleRoutes from './routes/vehicleRoutes';
 import dotenv from 'dotenv';
 import path from 'path';
 
@@ -70,6 +71,7 @@ app.use('/api/rides', rideRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api', bookingRoutes);
 app.use('/api', verificationRoutes);
+app.use('/api/vehicles', vehicleRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

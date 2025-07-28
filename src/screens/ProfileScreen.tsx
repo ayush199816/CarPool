@@ -1,14 +1,51 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
+import { Button } from 'react-native-paper';
 import { useAuth } from '../context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { SCREENS } from '../navigation/types';
+import { getVehicles } from '../services/vehicleService';
+import { useEffect, useState } from 'react';
 
 const ProfileScreen = () => {
-  const { user, logout, isUserVerified, getVerifiedVehicles } = useAuth();
+  const { user, logout, isUserVerified, getVerifiedVehicles, token } = useAuth();
   const navigation = useNavigation();
   const verifiedVehicles = getVerifiedVehicles() || [];
+  const [userVehicles, setUserVehicles] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    const loadVehicles = async () => {
+      if (!token) {
+        console.error('No authentication token found');
+        return;
+      }
+      
+      try {
+        setIsLoading(true);
+        console.log('Loading vehicles with token:', token); // Debug log
+        const response = await getVehicles(token);
+        console.log('Vehicles response:', response); // Debug log
+        if (response?.success && response.data) {
+          setUserVehicles(response.data);
+        }
+      } catch (error) {
+        console.error('Error loading vehicles:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (user?._id && token) {
+      loadVehicles();
+    }
+  }, [user?._id]);
+
+  const navigateToAddVehicle = () => {
+    // @ts-ignore - navigation type issue
+    navigation.navigate('AddVehicle');
+  };
 
   const navigateToVerification = (type: 'user' | 'vehicle') => {
     // @ts-ignore - navigation type issue
@@ -49,16 +86,71 @@ const ProfileScreen = () => {
         </View>
       </View>
 
-      <ScrollView style={styles.menuContainer}>
+      <ScrollView style={styles.content}>
+        {/* Vehicles Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Account</Text>
-          <TouchableOpacity style={styles.menuItem}>
-            <Ionicons name="person-outline" size={24} color="#333" />
-            <Text style={styles.menuText}>Edit Profile</Text>
-            <Ionicons name="chevron-forward" size={20} color="#999" />
-          </TouchableOpacity>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>My Vehicles</Text>
+            <TouchableOpacity onPress={navigateToAddVehicle} style={styles.addButton}>
+              <Ionicons name="add" size={20} color="#fff" />
+            </TouchableOpacity>
+          </View>
+          
+          {isLoading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="small" color="#007AFF" />
+            </View>
+          ) : userVehicles.length > 0 ? (
+            userVehicles.map((vehicle, index) => (
+              <View key={vehicle._id || index} style={styles.vehicleCard}>
+                <View style={styles.vehicleInfo}>
+                  <Text style={styles.vehicleName}>{vehicle.make} {vehicle.modelName} ({vehicle.year})</Text>
+                  <Text style={styles.vehiclePlate}>{vehicle.licensePlate}</Text>
+                </View>
+                <View style={[
+                  styles.verificationBadge, 
+                  vehicle.verificationStatus === 'verified' ? styles.verifiedBadge : styles.pendingBadge
+                ]}>
+                  <Ionicons 
+                    name={vehicle.verificationStatus === 'verified' ? "checkmark-circle" : "time"} 
+                    size={14} 
+                    color="#fff" 
+                  />
+                  <Text style={styles.verificationText}>
+                    {vehicle.verificationStatus === 'verified' ? 'Verified' : 'Pending'}
+                  </Text>
+                </View>
+              </View>
+            ))
+          ) : (
+            <View style={styles.noVehiclesContainer}>
+              <Text style={styles.noVehiclesText}>No vehicles added yet</Text>
+              <Button 
+                mode="contained" 
+                onPress={navigateToAddVehicle}
+                style={styles.addVehicleButton}
+                icon="plus"
+              >
+                Add Vehicle
+              </Button>
+            </View>
+          )}
         </View>
 
+        {/* Account Information Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Account Information</Text>
+          <View style={styles.infoItem}>
+            <Ionicons name="mail-outline" size={20} color="#666" style={styles.infoIcon} />
+            <Text style={styles.infoText}>{user?.email || 'No email'}</Text>
+          </View>
+          <View style={styles.infoItem}>
+            <Ionicons name="phone-portrait-outline" size={20} color="#666" style={styles.infoIcon} />
+            <Text style={styles.infoText}>{user?.phone || 'No phone number'}</Text>
+          </View>
+        </View>
+
+        {/* Verification Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Verification</Text>
           <TouchableOpacity 
@@ -80,32 +172,6 @@ const ProfileScreen = () => {
                 {user?.verification?.documents ? 
                   'Documents submitted' : 
                   'Upload ID and address proof'}
-              </Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color="#999" />
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={styles.menuItem}
-            onPress={() => navigateToVerification('vehicle')}
-          >
-            <View style={styles.menuIconContainer}>
-              <Ionicons 
-                name={verifiedVehicles.length > 0 ? "car-sport" : "car-sport-outline"} 
-                size={24} 
-                color={verifiedVehicles.length > 0 ? "#4CAF50" : "#333"} 
-              />
-            </View>
-            <View style={styles.menuTextContainer}>
-              <Text style={styles.menuText}>
-                {verifiedVehicles.length > 0 ? 
-                  `${verifiedVehicles.length} Vehicle${verifiedVehicles.length > 1 ? 's' : ''} Verified` : 
-                  'Add Vehicle'}
-              </Text>
-              <Text style={styles.menuSubtext}>
-                {verifiedVehicles.length > 0 ? 
-                  'Tap to manage vehicles' : 
-                  'Add your vehicle details'}
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color="#999" />
@@ -136,10 +202,82 @@ const ProfileScreen = () => {
 };
 
 const styles = StyleSheet.create({
+  // Layout
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
   },
+  scrollView: {
+    flex: 1,
+  },
+  contentContainer: {
+    paddingBottom: 30,
+  },
+  header: {
+    fontSize: 16,
+    color: '#333',
+    flex: 1,
+  },
+  // menuItem style moved to Menu Item section below
+  card: {
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  infoIcon: {
+    marginRight: 15,
+    width: 24,
+    alignItems: 'center',
+  },
+  infoText: {
+    fontSize: 16,
+    color: '#333',
+    flex: 1,
+  },
+  // logoutButton style moved to Menu Item section below
+  noVehiclesContainer: {
+    alignItems: 'center',
+    padding: 20,
+  },
+  noVehiclesText: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 15,
+  },
+  addVehicleButton: {
+    width: '100%',
+    backgroundColor: '#007AFF',
+  },
+  vehicleCard: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  vehicleInfo: {
+    flex: 1,
+  },
+  vehicleName: {
+    fontSize: 16,
+    fontWeight: '500',
+    marginBottom: 4,
+  },
+  vehiclePlate: {
+    fontSize: 14,
+    color: '#666',
+  },
+  
+  // Profile Header
   profileHeader: {
     backgroundColor: '#007AFF',
     padding: 20,
@@ -168,10 +306,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: 'rgba(255, 255, 255, 0.8)',
   },
-  menuContainer: {
+  
+  // Content
+  content: {
     flex: 1,
     padding: 15,
   },
+  
+  // Section
   section: {
     backgroundColor: '#fff',
     borderRadius: 12,
@@ -183,14 +325,53 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
-  sectionTitle: {
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     padding: 16,
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#666',
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
   },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+  },
+  
+  // Buttons
+  addButton: {
+    backgroundColor: '#007AFF',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  
+  // Loading
+  loadingContainer: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  
+  // Info Item
+  infoItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  
+  // Menu Container
+  menuContainer: {
+    flex: 1,
+    padding: 15,
+  },
+  
+  // Menu Item - Consolidated menuItem style
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -218,6 +399,7 @@ const styles = StyleSheet.create({
     color: '#333',
     fontWeight: '500',
   },
+  // Logout button style - consolidated
   logoutButton: {
     borderBottomWidth: 0,
     justifyContent: 'center',

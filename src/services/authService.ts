@@ -1,4 +1,6 @@
 import api from './api';
+// We'll use the auth context through the useAuth hook in components
+// and pass the token to the service functions
 interface User {
   _id: string;
   name: string;
@@ -69,13 +71,22 @@ export const authService = {
   // Get current user's profile
   getProfile: async (token: string): Promise<User> => {
     try {
-      const response = await api.get<User>('/auth/me', {
-        headers: { Authorization: `Bearer ${token}` },
+      const response = await api.get('/auth/profile', {
+        headers: { Authorization: `Bearer ${token}` }
       });
       return response.data;
     } catch (error) {
-      console.error('Error fetching user profile:', error);
+      console.error('Error fetching profile:', error);
       throw error;
     }
+  },
+  
+  // Note: This function should be called from within a React component
+  // where useAuth is available. For service functions, the token should be passed in.
+  getToken: (): string | null => {
+    // This is a placeholder. In practice, you should call useAuth() in your components
+    // and pass the token to the service functions.
+    console.warn('getToken() should be called from a React component using useAuth()');
+    return null;
   },
 };

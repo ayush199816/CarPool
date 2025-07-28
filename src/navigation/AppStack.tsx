@@ -8,6 +8,7 @@ import RideDetailsScreen from '../screens/RideDetailsScreen';
 import EditRideScreen from '../screens/EditRideScreen';
 import BottomTabNavigator from './BottomTabNavigator';
 import VerificationScreen from '../screens/verification/VerificationScreen';
+import AddVehicleScreen from '../screens/vehicles/AddVehicleScreen';
 
 const Stack = createStackNavigator<AppStackParamList>();
 
@@ -37,6 +38,11 @@ const AppStack = () => {
         name={SCREENS.VERIFICATION}
         component={VerificationScreen} 
         options={{ title: 'Verification' }}
+      />
+      <Stack.Screen 
+        name="AddVehicle"
+        component={AddVehicleScreen} 
+        options={{ title: 'Add Vehicle' }}
       />
     </Stack.Navigator>
   );
