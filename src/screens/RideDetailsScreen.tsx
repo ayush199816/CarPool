@@ -667,7 +667,7 @@ const RideDetailsScreen = () => {
             {ride.driver?.phone && (
               <TouchableOpacity 
                 style={[styles.contactButton, styles.callButton]}
-                onPress={() => handleCall(ride.driver.phone)}
+                onPress={() => handleCall(ride.driver?.phone)}
                 disabled={!ride.driver.phone}
               >
                 <Ionicons name="call" size={20} color="white" />
