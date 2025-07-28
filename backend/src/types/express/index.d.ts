@@ -17,7 +17,7 @@ declare global {
     }
 
     interface Request {
-      user?: User;
+      user?: IUser & { _id: any };
     }
   }
 }

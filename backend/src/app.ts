@@ -5,6 +5,8 @@ import rideRoutes from './routes/rideRoutes';
 import authRoutes from './routes/authRoutes';
 import bookingRoutes from './routes/bookingRoutes';
 import verificationRoutes from './routes/verificationRoutes';
+import vehicleRoutes from './routes/vehicleRoutes';
+import adminRoutes from './routes/adminRoutes';
 import dotenv from 'dotenv';
 import path from 'path';
 
@@ -66,10 +68,13 @@ app.get('/health', (req: Request, res: Response) => {
 app.use('/uploads', express.static(path.join(__dirname, '..', '..', 'uploads')));
 
 // API Routes
+// API Routes
 app.use('/api/rides', rideRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api', bookingRoutes);
 app.use('/api', verificationRoutes);
+app.use('/api/vehicles', vehicleRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

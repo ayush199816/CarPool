@@ -17,6 +17,12 @@ export type MainTabParamList = {
   Profile: undefined;
 };
 
+export type AdminStackParamList = {
+  AdminDashboard: undefined;
+  AdminUsers: undefined;
+  AdminVehicleApprovals: undefined;
+};
+
 export type AppStackParamList = {
   // Main Tabs
   MainTabs: undefined;
@@ -27,6 +33,16 @@ export type AppStackParamList = {
   
   // Verification
   Verification: { type: 'user' | 'vehicle' };
+  
+  // Vehicle Management
+  AddVehicle: undefined;
+  VehicleList: undefined;
+  
+  // Admin
+  Admin: NavigatorScreenParams<AdminStackParamList>;
+  AdminDashboard: undefined;
+  AdminUsers: undefined;
+  AdminVehicleApprovals: undefined;
 };
 
 // Define the root stack param list with all possible screens
@@ -44,6 +60,9 @@ export type RootStackParamList = {
   
   // Individual Screens
   RideList: undefined;
+  
+  // Admin Stack
+  Admin: NavigatorScreenParams<AdminStackParamList>;
   AddRide: undefined;
   Profile: undefined;
   Home: undefined;
@@ -63,6 +82,16 @@ export type MainTabsNavigationProp = CompositeNavigationProp<
 
 export type MainTabsRouteProp = RouteProp<RootStackParamList, 'MainTabs'>;
 
+// Admin Screens
+export const ADMIN_SCREENS = {
+  DASHBOARD: 'AdminDashboard',
+  USERS: 'AdminUsers',
+  VEHICLE_APPROVALS: 'AdminVehicleApprovals',
+  RIDES: 'AdminRides',
+  VERIFICATIONS: 'AdminVerifications',
+  REPORTS: 'AdminReports',
+} as const;
+
 // Screen names
 export const SCREENS = {
   // Auth Screens
@@ -80,6 +109,10 @@ export const SCREENS = {
   RIDE_DETAILS: 'RideDetails',
   EDIT_RIDE: 'EditRide',
   VERIFICATION: 'Verification',
+  
+  // Vehicle Management
+  ADD_VEHICLE: 'AddVehicle',
+  VEHICLE_LIST: 'VehicleList',
 } as const;
 
 // Common navigation options

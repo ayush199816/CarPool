@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import express, { Request, Response } from 'express';
 import multer, { FileFilterCallback } from 'multer'; // multer types are usually inferred
 import path from 'path';
 import fs from 'fs';
@@ -99,6 +99,7 @@ const storage = multer.diskStorage({
       const finalFilename = `${sanitizedUsername}-${actualUploadType}-${timestamp}${ext}`;
 
       console.log('Generated filename:', finalFilename);
+      cb(null, finalFilename);
     } catch (error) {
       console.error('Error in filename callback:', error);
       cb(error instanceof Error ? error : new Error(String(error)), 'error');
@@ -121,7 +122,7 @@ const fileFilter = (req: Request, file: Express.Multer.File, cb: FileFilterCallb
 };
 
 // Configure multer with storage and file filter
-const uploadMiddleware = multer({
+const upload = multer({
   storage: storage,
   limits: {
     fileSize: 5 * 1024 * 1024, // 5MB limit
@@ -131,6 +132,9 @@ const uploadMiddleware = multer({
   },
   fileFilter: fileFilter,
 });
+
+// Create a single-file upload middleware
+const uploadSingle = upload.single('file');
 
 // Custom middleware to log form data
 const logFormData = (req: Request, res: Response, next: any) => {
@@ -147,29 +151,59 @@ const logFormData = (req: Request, res: Response, next: any) => {
   next();
 };
 
-// Create a middleware that processes the file upload using upload.fields()
+// Create a middleware that processes the file upload
 const processUpload = (req: Request, res: Response, next: any) => {
-  console.log('=== Starting file upload process (processUpload middleware) ===');
+  console.log('\n=== Starting file upload process ===');
+  console.log('Headers:', JSON.stringify(req.headers, null, 2));
+  console.log('Content-Type:', req.headers['content-type']);
+  console.log('Authorization header present:', !!req.headers.authorization);
+  
+  // Parse URL-encoded and JSON bodies first
+  express.json()(req, res, () => {
+    console.log('JSON middleware executed');
+    
+    express.urlencoded({ extended: true })(req, res, () => {
+      console.log('URL-encoded middleware executed');
+      console.log('Request body after parsing:', req.body);
+      
+      // Now handle the file upload
+      console.log('Starting file upload with multer...');
+      uploadSingle(req, res, (err: any) => {
+        if (err) {
+          console.error('Upload error:', err);
+          console.error('Error stack:', err.stack);
+          return res.status(400).json({
+            success: false,
+            message: err.message || 'Error processing upload',
+            error: process.env.NODE_ENV === 'development' ? err.stack : undefined
+          });
+        }
 
-  uploadMiddleware.fields([
-    { name: 'file', maxCount: 1 },
-    { name: 'userName', maxCount: 1 },
-    { name: 'uploadType', maxCount: 1 }
-  ])(req, res, (err: any) => {
-    if (err) {
-      console.error('Upload error:', err);
-      return res.status(400).json({
-        success: false,
-        message: err.message || 'Error processing upload',
+        console.log('=== After multer processing (in processUpload middleware) ===');
+        console.log('Request body (after multer):', req.body);
+        console.log('Uploaded file (from req.file):', req.file);
+        
+        // Ensure we have the file and required fields
+        if (!req.file) {
+          console.error('No file found in request');
+          console.log('Request body:', req.body);
+          console.log('Request files:', req.files);
+          return res.status(400).json({
+            success: false,
+            message: 'No file was uploaded',
+            receivedFields: Object.keys(req.body),
+            filesInRequest: req.files ? Object.keys(req.files) : 'No files'
+          });
+        }
+
+        // Add the file to req.files for backward compatibility
+        if (!req.files) {
+          req.files = [req.file];
+        }
+
+        next();
       });
-    }
-
-    console.log('=== After multer processing (in processUpload middleware) ===');
-    console.log('Request body (after multer):', req.body);
-    console.log('Uploaded file (from req.file):', req.file);
-    console.log('Uploaded files (from req.files):', req.files);
-
-    next();
+    });
   });
 };
 
@@ -177,10 +211,10 @@ const processUpload = (req: Request, res: Response, next: any) => {
 export const uploadFile = (req: Request, res: Response) => {
   logFormData(req, res, () => {
     processUpload(req, res, async () => {
-      const uploadedFile = (req.files as { file?: Express.Multer.File[] })?.file?.[0];
+      const uploadedFile = req.file || (Array.isArray(req.files) ? req.files[0] : null);
 
       if (!uploadedFile) {
-        console.error('No file was found in req.files.file[0] after Multer processing.');
+        console.error('No file was found after Multer processing.');
         return res.status(400).json({
           success: false,
           message: 'No file was uploaded or processed correctly.',
