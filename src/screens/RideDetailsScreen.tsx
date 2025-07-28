@@ -41,12 +41,36 @@ const RideDetailsScreen = () => {
   
   // Check if current user has a confirmed booking for this ride
   const hasConfirmedBooking = useMemo(() => {
-    if (!user?._id || !ride?.bookingRequests?.length) return false;
+    console.log('--- Checking hasConfirmedBooking ---');
+    console.log('User ID:', user?._id);
+    console.log('Ride booking requests:', ride?.bookingRequests);
     
-    return ride.bookingRequests.some((request: any) => 
-      (request.userId?._id === user._id || request.userId === user._id) && 
-      request.status === 'accepted'
-    );
+    if (!user?._id || !ride?.bookingRequests?.length) {
+      console.log('No user ID or booking requests');
+      return false;
+    }
+    
+    const hasBooking = ride.bookingRequests.some((request: any) => {
+      const userIdMatch = request.userId?._id === user._id || 
+                        request.userId === user._id ||
+                        (request.passenger && request.passenger._id === user._id);
+      
+      const isAccepted = request.status?.toLowerCase() === 'accepted';
+      
+      console.log('Request check:', {
+        requestId: request._id,
+        requestUserId: request.userId,
+        requestPassenger: request.passenger,
+        userIdMatch,
+        isAccepted,
+        status: request.status
+      });
+      
+      return userIdMatch && isAccepted;
+    });
+    
+    console.log('hasBooking result:', hasBooking);
+    return hasBooking;
   }, [user?._id, ride?.bookingRequests]);
 
   useEffect(() => {
@@ -603,25 +627,27 @@ const RideDetailsScreen = () => {
               {ride.driver?.name || 'Driver'}
             </Text>
             
-            {/* Only show contact info if the user has a confirmed booking */}
-            {hasConfirmedBooking ? (
+            {/* Show contact info if the user has a confirmed booking or is the ride owner */}
+            {hasConfirmedBooking || isOwner ? (
               <>
-                {ride.driver?.email && (
+                {ride.driver?.email ? (
                   <View style={styles.driverDetailRow}>
                     <Ionicons name="mail" size={16} color="#4A6FA5" style={styles.detailIcon} />
                     <Text style={styles.driverDetailText}>
                       {ride.driver.email}
                     </Text>
                   </View>
-                )}
+                ) : null}
                 
-                {ride.driver?.phone && (
+                {ride.driver?.phone ? (
                   <View style={styles.driverDetailRow}>
                     <Ionicons name="call" size={16} color="#4A6FA5" style={styles.detailIcon} />
                     <Text style={styles.driverDetailText}>
                       {ride.driver.phone}
                     </Text>
                   </View>
+                ) : (
+                  <Text style={styles.noContactInfo}>No contact information available</Text>
                 )}
               </>
             ) : (
@@ -632,19 +658,16 @@ const RideDetailsScreen = () => {
                 </Text>
               </View>
             )}
-            
-            {!ride.driver?.email && !ride.driver?.phone && (
-              <Text style={styles.noContactInfo}>No contact information available</Text>
-            )}
           </View>
         </View>
 
-        {(ride.driver?.phone || ride.driver?.email) && (
+        {/* Show contact buttons only if user has a confirmed booking or is the ride owner */}
+        {(hasConfirmedBooking || isOwner) && (ride.driver?.phone || ride.driver?.email) && (
           <View style={styles.contactButtons}>
             {ride.driver?.phone && (
               <TouchableOpacity 
                 style={[styles.contactButton, styles.callButton]}
-                onPress={() => handleCall(ride.driver?.phone)}
+                onPress={() => handleCall(ride.driver.phone)}
                 disabled={!ride.driver.phone}
               >
                 <Ionicons name="call" size={20} color="white" />
@@ -652,28 +675,27 @@ const RideDetailsScreen = () => {
               </TouchableOpacity>
             )}
             
-            {(ride.driver?.phone || ride.driver?.email) && (
-              <TouchableOpacity 
-                style={[styles.contactButton, styles.messageButton]}
-                onPress={() => {
-                  if (ride.driver?.phone) {
-                    handleMessage(ride.driver.phone);
-                  } else if (ride.driver?.email) {
-                    const emailUrl = `mailto:${ride.driver.email}`;
-                    Linking.openURL(emailUrl);
-                  }
-                }}
-              >
-                <Ionicons 
-                  name={ride.driver?.phone ? "chatbubble" : "mail"} 
-                  size={20} 
-                  color="white" 
-                />
-                <Text style={styles.contactButtonText}>
-                  {ride.driver?.phone ? "Message" : "Email"}
-                </Text>
-              </TouchableOpacity>
-            )}
+            <TouchableOpacity 
+              style={[styles.contactButton, styles.messageButton]}
+              onPress={() => {
+                if (ride.driver?.phone) {
+                  handleMessage(ride.driver.phone);
+                } else if (ride.driver?.email) {
+                  const emailUrl = `mailto:${ride.driver.email}`;
+                  Linking.openURL(emailUrl);
+                }
+              }}
+              disabled={!ride.driver?.phone && !ride.driver?.email}
+            >
+              <Ionicons 
+                name={ride.driver?.phone ? "chatbubble" : "mail"} 
+                size={20} 
+                color="white" 
+              />
+              <Text style={styles.contactButtonText}>
+                {ride.driver?.phone ? "Message" : "Email"}
+              </Text>
+            </TouchableOpacity>
           </View>
         )}
       </View>
