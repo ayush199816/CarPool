@@ -12,7 +12,9 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 const AddRideScreen = () => {
   const navigation = useNavigation();
   const { createRide } = useRide();
-  const { user } = useAuth();
+  const { user, getVerifiedVehicles } = useAuth();
+  const [hasVerifiedVehicle, setHasVerifiedVehicle] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
@@ -47,6 +49,21 @@ const AddRideScreen = () => {
   
   const [currentStoppage, setCurrentStoppage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    const checkVerifiedVehicle = async () => {
+      try {
+        const verifiedVehicles = getVerifiedVehicles?.() || [];
+        setHasVerifiedVehicle(verifiedVehicles.length > 0);
+      } catch (error) {
+        console.error('Error checking verified vehicles:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    checkVerifiedVehicle();
+  }, []);
 
   const handleInputChange = (field: keyof typeof formData, value: string | number | Date) => {
     setFormData(prev => ({
@@ -91,6 +108,24 @@ const AddRideScreen = () => {
   };
 
   const handleSubmit = async () => {
+    if (!hasVerifiedVehicle) {
+      Alert.alert(
+        'Verification Required',
+        'You need to have at least one verified vehicle to create a ride. Please verify your vehicle in the Profile section.',
+        [
+          {
+            text: 'Go to Profile',
+            onPress: () => navigation.navigate(SCREENS.PROFILE as never),
+          },
+          {
+            text: 'Cancel',
+            style: 'cancel',
+          },
+        ]
+      );
+      return;
+    }
+
     if (!formData.startPoint || !formData.endPoint || !formData.travelDate) {
       Alert.alert('Error', 'Please fill in all required fields');
       return;

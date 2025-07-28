@@ -1,6 +1,6 @@
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
-import { SCREENS, commonHeaderOptions } from './types';
+import { SCREENS, commonHeaderOptions, ADMIN_SCREENS } from './types';
 import { AppStackParamList } from './types';
 
 // Screens
@@ -8,6 +8,8 @@ import RideDetailsScreen from '../screens/RideDetailsScreen';
 import EditRideScreen from '../screens/EditRideScreen';
 import BottomTabNavigator from './BottomTabNavigator';
 import VerificationScreen from '../screens/verification/VerificationScreen';
+import AddVehicleScreen from '../screens/vehicles/AddVehicleScreen';
+import AdminStack from './AdminStack';
 
 const Stack = createStackNavigator<AppStackParamList>();
 
@@ -38,8 +40,25 @@ const AppStack = () => {
         component={VerificationScreen} 
         options={{ title: 'Verification' }}
       />
+      <Stack.Screen 
+        name="AddVehicle"
+        component={AddVehicleScreen} 
+        options={{ title: 'Add Vehicle' }}
+      />
+      <Stack.Screen 
+        name="Admin"
+        component={AdminStack}
+        options={{ headerShown: false }}
+      />
     </Stack.Navigator>
   );
 };
+
+// Add this to fix the navigation type issue
+declare global {
+  namespace ReactNavigation {
+    interface RootParamList extends AppStackParamList {}
+  }
+}
 
 export default AppStack;
