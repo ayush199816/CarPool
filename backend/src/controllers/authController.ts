@@ -60,6 +60,7 @@ export const login = async (req: Request, res: Response) => {
         _id: userObj._id,
         name: userObj.name,
         email: userObj.email,
+        isAdmin: userObj.isAdmin,
         token: generateToken(userObj._id)
       });
     } else {
@@ -74,6 +75,40 @@ export const login = async (req: Request, res: Response) => {
 // @desc    Get user profile
 // @route   GET /api/auth/profile
 // @access  Private
+// @desc    Create admin user (one-time setup)
+// @route   POST /api/auth/create-admin
+// @access  Public
+export const createAdmin = async (req: Request, res: Response) => {
+  try {
+    const { name, email, password, phone } = req.body;
+    
+    // Check if admin already exists
+    const adminExists = await User.findOne({ email: 'admin@CarPool.com' });
+    if (adminExists) {
+      return res.status(400).json({ message: 'Admin user already exists' });
+    }
+
+    // Create admin user
+    const admin = await User.create({
+      name: 'Admin',
+      email: 'admin@CarPool.com',
+      password: 'Divyush@1629',
+      phone: '+1234567890',
+      isAdmin: true
+    });
+
+    res.status(201).json({
+      _id: admin._id,
+      name: admin.name,
+      email: admin.email,
+      isAdmin: admin.isAdmin
+    });
+  } catch (error) {
+    console.error('Create admin error:', error);
+    res.status(500).json({ message: 'Server error during admin creation' });
+  }
+};
+
 export const getProfile = async (req: Request, res: Response) => {
   try {
     const user = await User.findById((req as any).user.id);
@@ -83,7 +118,8 @@ export const getProfile = async (req: Request, res: Response) => {
         _id: user._id,
         name: user.name,
         email: user.email,
-        phone: user.phone
+        phone: user.phone,
+        isAdmin: user.isAdmin
       });
     } else {
       res.status(404).json({ message: 'User not found' });

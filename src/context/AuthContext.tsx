@@ -2,49 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { authService } from '../services/authService';
-
-interface VerificationStatus {
-  isVerified: boolean;
-  documents?: {
-    drivingLicense?: string;
-    aadhaarCard?: string;
-    verifiedAt?: Date | string;  // Allow both Date and string (ISO format)
-  };
-  vehicles?: Array<{
-    id: string;
-    type: 'Car' | 'Bike' | 'Scooty';
-    number: string;
-    company: string;
-    model: string;
-    color: string;
-    rcDocument?: string;
-    verified: boolean;
-  }>;
-  lastUpdated?: Date | string;  // Also update lastUpdated for consistency
-}
-
-interface User {
-  _id: string;
-  name: string;
-  email: string;
-  phone?: string;
-  verification?: VerificationStatus;
-}
-
-interface AuthContextType {
-  user: User | null;
-  token: string | null;
-  isLoading: boolean;
-  error: string | null;
-  login: (email: string, password: string) => Promise<{ user: User; token: string }>;
-  register: (name: string, email: string, phone: string, password: string) => Promise<{ user: User; token: string }>;
-  logout: () => Promise<void>;
-  updateUser: (userData: Partial<User>) => void;
-  updateVerification: (verificationData: VerificationStatus) => Promise<void>;
-  clearError: () => void;
-  isUserVerified: () => boolean;
-  getVerifiedVehicles: () => Array<VerificationStatus['vehicles']>[0] | [];
-}
+import { User, AuthContextType } from '../types/user';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -55,46 +13,36 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const loadUserData = async () => {
+    const loadUserFromStorage = async () => {
       try {
-        const token = await AsyncStorage.getItem('userToken');
-        const userData = await AsyncStorage.getItem('userData');
-        
-        if (token && userData) {
-          setToken(token);
-          setUser(JSON.parse(userData));
+        const storedToken = await AsyncStorage.getItem('userToken');
+        if (storedToken) {
+          const user = await authService.getProfile(storedToken);
+          setUser(user);
+          setToken(storedToken);
         }
-      } catch (error) {
-        console.error('Error loading user data:', error);
+      } catch (err) {
+        console.error('Failed to load user from storage', err);
+        await AsyncStorage.removeItem('userToken');
       } finally {
         setIsLoading(false);
       }
     };
 
-    loadUserData();
+    loadUserFromStorage();
   }, []);
 
   const login = async (email: string, password: string) => {
+    setError(null);
     try {
-      setError(null);
-      setIsLoading(true);
-      
+      console.log('AuthContext - Attempting login with email:', email);
       const { user, token } = await authService.login({ email, password });
+      console.log('AuthContext - Login successful, user:', JSON.stringify(user, null, 2));
+      console.log('AuthContext - Is admin:', user?.isAdmin);
       
-      // Ensure we have both user and token before proceeding
-      if (!user || !token) {
-        throw new Error('Invalid response from server');
-      }
-      
-      // Store both token and user data
-      await Promise.all([
-        AsyncStorage.setItem('userToken', token),
-        AsyncStorage.setItem('userData', JSON.stringify(user))
-      ]);
-      
-      // Update state
-      setToken(token);
       setUser(user);
+      setToken(token);
+      await AsyncStorage.setItem('userToken', token);
       
       return { user, token };
     } catch (error: unknown) {

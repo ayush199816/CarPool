@@ -10,6 +10,12 @@ import { useEffect, useState } from 'react';
 
 const ProfileScreen = () => {
   const { user, logout, isUserVerified, getVerifiedVehicles, token } = useAuth();
+  
+  // Debug log to check user object and admin status
+  React.useEffect(() => {
+    console.log('ProfileScreen - User object:', JSON.stringify(user, null, 2));
+    console.log('Is admin:', user?.isAdmin);
+  }, [user]);
   const navigation = useNavigation();
   const verifiedVehicles = getVerifiedVehicles() || [];
   const [userVehicles, setUserVehicles] = useState<any[]>([]);
@@ -187,6 +193,32 @@ const ProfileScreen = () => {
           </TouchableOpacity>
         </View>
 
+        {/* Admin Panel Section - Temporarily always visible for debugging */}
+        {true && (
+          <View style={styles.section}>
+            <TouchableOpacity 
+              style={styles.menuItem}
+              onPress={() => {
+                // @ts-ignore - navigation type issue
+                navigation.navigate('Admin', { screen: 'AdminDashboard' });
+              }}
+            >
+              <View style={styles.menuIconContainer}>
+                <Ionicons name="shield-outline" size={24} color="#007AFF" />
+              </View>
+              <View style={styles.menuTextContainer}>
+                <Text style={styles.menuText}>Admin Panel</Text>
+                <Text style={styles.debugText}>
+                  User ID: {user?._id || 'N/A'}
+                  {user?.isAdmin ? ' (Admin)' : ' (Not Admin)'}
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color="#999" />
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Logout Section */}
         <View style={styles.section}>
           <TouchableOpacity 
             style={[styles.menuItem, styles.logoutButton]}
@@ -398,6 +430,11 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#333',
     fontWeight: '500',
+  },
+  debugText: {
+    fontSize: 10,
+    color: '#666',
+    marginTop: 2,
   },
   // Logout button style - consolidated
   logoutButton: {

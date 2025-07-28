@@ -6,6 +6,7 @@ interface User {
   name: string;
   email: string;
   phone?: string;
+  isAdmin?: boolean;
 }
 
 interface RegisterCredentials {
@@ -37,7 +38,8 @@ export const authService = {
           _id: response.data._id,
           email: response.data.email,
           name: response.data.name,
-          phone: response.data.phone
+          phone: response.data.phone,
+          isAdmin: response.data.isAdmin || false  // Include isAdmin from the response
         },
         token: response.data.token
       };
@@ -58,7 +60,8 @@ export const authService = {
           _id: response.data._id,
           email: response.data.email,
           name: response.data.name,
-          phone: response.data.phone
+          phone: response.data.phone,
+          isAdmin: response.data.isAdmin || false
         },
         token: response.data.token
       };
@@ -74,7 +77,10 @@ export const authService = {
       const response = await api.get('/auth/profile', {
         headers: { Authorization: `Bearer ${token}` }
       });
-      return response.data;
+      return {
+        ...response.data,
+        isAdmin: response.data.isAdmin || false
+      };
     } catch (error) {
       console.error('Error fetching profile:', error);
       throw error;
