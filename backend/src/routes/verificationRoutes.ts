@@ -1,6 +1,11 @@
 import express from 'express';
-import { uploadFile, getFile } from '../controllers/verificationController';
-import { protect } from '../middleware/authMiddleware';
+import { 
+  uploadFile, 
+  getFile, 
+  getPendingVerifications, 
+  updateVerificationStatus 
+} from '../controllers/verificationController';
+import { protect, admin } from '../middleware/authMiddleware';
 
 const router = express.Router();
 
@@ -13,5 +18,17 @@ router.post('/upload', protect, uploadFile);
 
 // Serve uploaded files
 router.get('/uploads/*', getFile);
+
+// Get pending verifications (admin only)
+router.get('/pending', protect, admin, getPendingVerifications);
+
+// Update verification status (admin only)
+router.patch(
+  '/:id/status', 
+  protect, 
+  admin, 
+  express.json(),
+  updateVerificationStatus
+);
 
 export default router;

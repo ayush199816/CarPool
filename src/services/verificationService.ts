@@ -15,7 +15,7 @@ export interface VehicleVerification {
     licensePlate: string;
   };
   documentUrl: string;
-  status: 'pending' | 'approved' | 'rejected';
+  status: 'pending' | 'verified' | 'rejected';
   createdAt: string;
 }
 
@@ -55,7 +55,7 @@ export const getPendingVerifications = async (): Promise<VehicleVerification[]> 
 
 export const updateVerificationStatus = async (
   verificationId: string, 
-  status: 'approved' | 'rejected',
+  status: 'verified' | 'rejected',
   rejectionReason?: string
 ): Promise<VehicleVerification> => {
   try {

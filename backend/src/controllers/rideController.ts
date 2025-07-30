@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import Ride, { IRide } from '../models/Ride';
+import { AuthenticatedUser } from '../types/express';
 
 // @desc    Get all rides with optional filters
 // @route   GET /api/rides
@@ -160,16 +161,6 @@ export const getRideById = async (req: Request, res: Response) => {
 // @desc    Create a ride
 // @route   POST /api/rides
 // @access  Private
-// Extend the Express Request type to include user
-declare global {
-  namespace Express {
-    interface Request {
-      user?: {
-        _id: string;
-      };
-    }
-  }
-}
 
 export const createRide = async (req: Request, res: Response) => {
   try {

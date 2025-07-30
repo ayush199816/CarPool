@@ -1,7 +1,26 @@
-import express, { Request, Response } from 'express';
-import multer, { FileFilterCallback } from 'multer'; // multer types are usually inferred
+import { Request, Response, NextFunction } from 'express';
+import multer, { FileFilterCallback } from 'multer';
 import path from 'path';
 import fs from 'fs';
+import express from 'express';
+import Vehicle, { IVehicle } from '../models/Vehicle';
+import { AuthenticatedUser } from '../types/express';
+
+// Define the structure of the populated user
+interface PopulatedUser {
+  _id: string;
+  name: string;
+  email: string;
+  phone?: string;
+}
+
+// Define the structure of the vehicle with populated user
+type VehicleWithUser = Omit<IVehicle, 'userId'> & {
+  userId: PopulatedUser | string; // Handle both populated and non-populated cases
+  verificationDocuments?: string[]; // Add missing property
+  verificationStatus?: 'pending' | 'verified' | 'rejected';
+  createdAt?: Date;
+};
 
 // Extend the Express Request type to include the file and files property
 declare global {
@@ -159,16 +178,15 @@ const processUpload = (req: Request, res: Response, next: any) => {
   console.log('Authorization header present:', !!req.headers.authorization);
   
   // Parse URL-encoded and JSON bodies first
-  express.json()(req, res, () => {
+  express.json()(req as express.Request, res as express.Response, () => {
     console.log('JSON middleware executed');
     
-    express.urlencoded({ extended: true })(req, res, () => {
+    express.urlencoded({ extended: true })(req as express.Request, res as express.Response, () => {
       console.log('URL-encoded middleware executed');
       console.log('Request body after parsing:', req.body);
-      
-      // Now handle the file upload
-      console.log('Starting file upload with multer...');
-      uploadSingle(req, res, (err: any) => {
+            // Now handle the file upload
+        console.log('Starting file upload with multer...');
+        uploadSingle(req as express.Request, res as express.Response, (err: any) => {
         if (err) {
           console.error('Upload error:', err);
           console.error('Error stack:', err.stack);
@@ -256,7 +274,130 @@ export const uploadFile = (req: Request, res: Response) => {
   });
 };
 
-// Serve uploaded files
+/**
+ * @desc    Get pending verifications
+ * @route   GET /api/verifications/pending
+ * @access  Private/Admin
+ */
+export const getPendingVerifications = async (req: Request, res: Response) => {
+  try {
+    console.log('🔍 [getPendingVerifications] Querying for pending vehicles...');
+    
+    // Get pending vehicle verifications and populate user details
+    const pendingVehicles = await Vehicle.find({ verificationStatus: 'pending' })
+      .populate<{ userId: PopulatedUser }>('userId', 'name email phone')
+      .select('-__v')
+      .lean<VehicleWithUser[]>();
+      
+    console.log(`🔍 [getPendingVerifications] Found ${pendingVehicles.length} pending vehicles`);
+
+    // Format the response to match frontend's expected structure
+    const formattedVerifications = pendingVehicles.map(vehicle => {
+      console.log(`🔍 [getPendingVerifications] Processing vehicle ${vehicle._id}`);
+      
+      // Get the first document URL if available, or use an empty string
+      const documentUrl = vehicle.verificationDocuments?.[0] || '';
+      
+      return {
+        _id: vehicle._id,
+        user: {
+          _id: typeof vehicle.userId === 'string' ? vehicle.userId : vehicle.userId?._id || '',
+          name: (typeof vehicle.userId === 'object' && vehicle.userId?.name) || 'Unknown',
+          email: (typeof vehicle.userId === 'object' && vehicle.userId?.email) || '',
+        },
+        vehicle: {
+          make: vehicle.make,
+          model: vehicle.modelName,
+          year: vehicle.year,
+          licensePlate: vehicle.licensePlate,
+        },
+        documentUrl: documentUrl,
+        status: vehicle.verificationStatus,
+        createdAt: vehicle.createdAt?.toISOString() || new Date().toISOString(),
+      };
+    });
+
+    res.status(200).json(formattedVerifications);
+  } catch (error) {
+    console.error('Error fetching pending verifications:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while fetching pending verifications'
+    });
+  }
+};
+
+/**
+ * @desc    Update verification status
+ * @route   PATCH /api/verifications/:id/status
+ * @access  Private/Admin
+ */
+export const updateVerificationStatus = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { status, rejectionReason } = req.body as { status: 'verified' | 'rejected'; rejectionReason?: string };
+
+    console.log(`🔍 [updateVerificationStatus] Updating verification ${id} to status: ${status}`);
+
+    // Validate status
+    if (!['verified', 'rejected'].includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid status. Must be either "verified" or "rejected"',
+      });
+    }
+
+    // Find and update the vehicle
+    const updatedVehicle = await Vehicle.findByIdAndUpdate(
+      id,
+      { 
+        verificationStatus: status,
+        ...(rejectionReason && { rejectionReason }),
+        verifiedAt: status === 'verified' ? new Date() : null,
+      },
+      { new: true, runValidators: true }
+    )
+    .populate<{ userId: PopulatedUser }>('userId', 'name email phone')
+    .lean<VehicleWithUser>();
+
+    if (!updatedVehicle) {
+      return res.status(404).json({
+        success: false,
+        message: 'Verification not found',
+      });
+    }
+
+    // Format the response to match frontend's expected structure
+    const formattedVerification = {
+      _id: updatedVehicle._id,
+      user: {
+        _id: typeof updatedVehicle.userId === 'string' ? updatedVehicle.userId : updatedVehicle.userId?._id || '',
+        name: (typeof updatedVehicle.userId === 'object' && updatedVehicle.userId?.name) || 'Unknown',
+        email: (typeof updatedVehicle.userId === 'object' && updatedVehicle.userId?.email) || '',
+      },
+      vehicle: {
+        make: updatedVehicle.make,
+        model: updatedVehicle.modelName,
+        year: updatedVehicle.year,
+        licensePlate: updatedVehicle.licensePlate,
+      },
+      documentUrl: updatedVehicle.verificationDocuments?.[0] || '',
+      status: updatedVehicle.verificationStatus,
+      createdAt: updatedVehicle.createdAt?.toISOString() || new Date().toISOString(),
+    };
+
+    res.status(200).json(formattedVerification);
+  } catch (error: unknown) {
+    console.error('Error updating verification status:', error);
+    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+    res.status(500).json({
+      success: false,
+      message: 'Error updating verification status',
+      error: process.env.NODE_ENV === 'development' ? errorMessage : undefined,
+    });
+  }
+};
+
 export const getFile = (req: Request, res: Response) => {
   try {
     const relativeFilePath = req.params[0];
