@@ -184,6 +184,21 @@ const styles = StyleSheet.create({
     padding: 16,
     backgroundColor: '#f5f5f5',
   },
+  errorContainer: {
+    backgroundColor: '#ffebee',
+    padding: 10,
+    borderRadius: 4,
+    marginBottom: 10,
+  },
+  listContainer: {
+    paddingBottom: 20,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
   center: {
     justifyContent: 'center',
     alignItems: 'center',
@@ -225,6 +240,11 @@ const styles = StyleSheet.create({
     color: '#666',
     marginVertical: 4,
   },
+  userDetail: {
+    fontSize: 12,
+    color: '#888',
+    marginTop: 2,
+  },
   userMeta: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -258,6 +278,25 @@ const styles = StyleSheet.create({
   actionButtonText: {
     color: 'white',
     fontWeight: '500',
+  },
+  adminBadge: {
+    backgroundColor: '#4a90e2',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+    marginTop: 4,
+    alignSelf: 'flex-start',
+  },
+  adminBadgeText: {
+    color: 'white',
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+  hidden: {
+    display: 'none',
+  },
+  removeAdminButton: {
+    backgroundColor: '#e67e22',
   },
   errorText: {
     color: '#e74c3c',

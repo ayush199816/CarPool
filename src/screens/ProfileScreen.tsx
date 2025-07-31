@@ -193,8 +193,8 @@ const ProfileScreen = () => {
           </TouchableOpacity>
         </View>
 
-        {/* Admin Panel Section - Temporarily always visible for debugging */}
-        {true && (
+        {/* Admin Panel Section - Only visible to admin users */}
+        {user?.isAdmin && (
           <View style={styles.section}>
             <TouchableOpacity 
               style={styles.menuItem}
@@ -208,10 +208,6 @@ const ProfileScreen = () => {
               </View>
               <View style={styles.menuTextContainer}>
                 <Text style={styles.menuText}>Admin Panel</Text>
-                <Text style={styles.debugText}>
-                  User ID: {user?._id || 'N/A'}
-                  {user?.isAdmin ? ' (Admin)' : ' (Not Admin)'}
-                </Text>
               </View>
               <Ionicons name="chevron-forward" size={20} color="#999" />
             </TouchableOpacity>

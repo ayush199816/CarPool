@@ -42,5 +42,17 @@ export interface AuthContextType {
   updateVerification: (verificationData: VerificationStatus) => Promise<void>;
   clearError: () => void;
   isUserVerified: () => boolean;
-  getVerifiedVehicles: () => Array<VerificationStatus['vehicles']>[0] | [];
+  getVerifiedVehicles: () => Promise<Array<{
+    _id: string;
+    make: string;
+    modelName: string;
+    year: number;
+    color: string;
+    licensePlate: string;
+    registrationNumber: string;
+    registrationExpiry: string | Date;
+    vehicleType?: string;
+    verificationStatus?: 'pending' | 'verified' | 'rejected';
+    isActive?: boolean;
+  }>>;
 }

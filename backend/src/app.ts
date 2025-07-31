@@ -1,4 +1,4 @@
-import express, { Application, Request, Response, NextFunction } from 'express';
+import express, { Application, Request, Response, NextFunction, ErrorRequestHandler } from 'express';
 import cors from 'cors';
 import connectDB from './config/db';
 import rideRoutes from './routes/rideRoutes';
@@ -9,6 +9,21 @@ import vehicleRoutes from './routes/vehicleRoutes';
 import adminRoutes from './routes/adminRoutes';
 import dotenv from 'dotenv';
 import path from 'path';
+import os from 'os';
+import { networkInterfaces } from 'os';
+
+type NetworkInterfaceInfo = {
+  address: string;
+  netmask: string;
+  family: string;
+  mac: string;
+  internal: boolean;
+  cidr: string | null;
+};
+
+type NetworkInterfaces = {
+  [key: string]: NetworkInterfaceInfo[] | undefined;
+};
 
 // Load environment variables from .env file in the backend directory
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
@@ -54,35 +69,37 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Logging middleware
-app.use((req: Request, res: Response, next: NextFunction) => {
+const requestLogger = (req: Request, res: Response, next: NextFunction) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
   next();
-});
+};
+app.use(requestLogger);
 
 // Health check endpoint
-app.get('/health', (req: Request, res: Response) => {
+const healthCheck = (req: Request, res: Response) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
-});
+};
+app.get('/health', healthCheck);
 
 // Serve uploaded files statically
 app.use('/uploads', express.static(path.join(__dirname, '..', '..', 'uploads')));
 
 // API Routes
-// API Routes
 app.use('/api/rides', rideRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api', bookingRoutes);
-app.use('/api', verificationRoutes);
+app.use('/api/verifications', verificationRoutes); // Mount verification routes at /api/verifications
 app.use('/api/vehicles', vehicleRoutes);
 app.use('/api/admin', adminRoutes);
 
-// Health check endpoint
-app.get('/api/health', (req, res) => {
+// API Health check endpoint
+const apiHealthCheck = (req: Request, res: Response) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
+};
+app.get('/api/health', apiHealthCheck);
 
 // Root endpoint
-app.get('/', (req: Request, res: Response) => {
+const rootHandler = (req: Request, res: Response) => {
   res.json({ 
     message: '🚗 Ride Sharing API',
     version: '1.0.0',
@@ -98,22 +115,65 @@ app.get('/', (req: Request, res: Response) => {
     },
     timestamp: new Date().toISOString(),
   });
-});
+};
+app.get('/', rootHandler);
 
 // Error handling middleware
-app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+const errorHandler: ErrorRequestHandler = (err: Error, req: Request, res: Response, next: NextFunction) => {
   console.error(err.stack);
   res.status(500).json({ message: 'Something went wrong!', error: err.message });
-});
+};
+app.use(errorHandler);
 
 // Connect to MongoDB
 connectDB();
 
-// Start server
-const server = app.listen(PORT, () => {
+// Start the server
+const server = app.listen(Number(PORT), '0.0.0.0', () => {
+  const address = server.address();
+  const host = typeof address === 'string' ? address : address?.address;
+  const port = typeof address === 'string' ? PORT : address?.port;
+  
   console.log(`Server is running on port ${PORT}`);
   console.log(`API URL: http://localhost:${PORT}`);
+  
+  // Get network interfaces
+  try {
+    const nets: NetworkInterfaces = networkInterfaces();
+    const networkInfo = Object.entries(nets)
+      .flatMap(([name, iface]) => 
+        (iface || [])
+          .filter((details: NetworkInterfaceInfo) => details.family === 'IPv4' && !details.internal)
+          .map((details: NetworkInterfaceInfo) => `${name}: ${details.address}`)
+      )
+      .join('\n');
+    
+    console.log('Network interfaces available:');
+    console.log(networkInfo || 'No network interfaces found');
+    
+    // Get the first non-internal IPv4 address
+    const firstAddress = Object.values(nets)
+      .flat()
+      .filter((details): details is NetworkInterfaceInfo => details !== undefined)
+      .find(details => details.family === 'IPv4' && !details.internal)?.address;
+    
+    if (firstAddress) {
+      console.log(`Try accessing the API at: http://${firstAddress}:${PORT}`);
+    }
+  } catch (error) {
+    console.log('Could not determine network interfaces');
+  }
 });
+
+// Connect to MongoDB
+connectDB()
+  .then(() => {
+    console.log('✅ MongoDB connection established successfully');
+  })
+  .catch((error) => {
+    console.error('❌ MongoDB connection error:', error);
+    process.exit(1);
+  });
 
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (err: Error) => {

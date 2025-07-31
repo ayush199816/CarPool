@@ -26,18 +26,18 @@ const VehicleApproval = () => {
     }
   };
 
-  const handleStatusUpdate = async (verificationId: string, status: 'approved' | 'rejected') => {
+  const handleStatusUpdate = async (verificationId: string, status: 'verified' | 'rejected') => {
     try {
-      const action = status === 'approved' ? 'approve' : 'reject';
+      const action = status === 'verified' ? 'verify' : 'reject';
       
       Alert.alert(
-        `${status === 'approved' ? 'Approve' : 'Reject'} Vehicle`,
+        `${status === 'verified' ? 'Verify' : 'Reject'} Vehicle`,
         `Are you sure you want to ${action} this vehicle verification?`,
         [
           { text: 'Cancel', style: 'cancel' },
           {
-            text: status === 'approved' ? 'Approve' : 'Reject',
-            style: status === 'approved' ? 'default' : 'destructive',
+            text: status === 'verified' ? 'Verify' : 'Reject',
+            style: status === 'verified' ? 'default' : 'destructive',
             onPress: async () => {
               await updateVerificationStatus(verificationId, status);
               setVerifications(verifications.map(v => 
@@ -107,7 +107,7 @@ const VehicleApproval = () => {
           
           <TouchableOpacity
             style={[styles.button, styles.approveButton]}
-            onPress={() => handleStatusUpdate(item._id, 'approved')}
+            onPress={() => handleStatusUpdate(item._id, 'verified')}
             disabled={isLoading}
           >
             <Text style={styles.buttonText}>Approve</Text>
@@ -168,6 +168,75 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
     backgroundColor: '#f5f5f5',
+  },
+  card: {
+    backgroundColor: 'white',
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  header: {
+    marginBottom: 12,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  detailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  detailLabel: {
+    fontSize: 14,
+    color: '#666',
+    fontWeight: '500',
+  },
+  detailValue: {
+    fontSize: 14,
+    color: '#333',
+    fontWeight: '400',
+  },
+  documentSection: {
+    marginTop: 12,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 8,
+    color: '#444',
+  },
+  footer: {
+    marginTop: 16,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+  },
+  dateText: {
+    fontSize: 12,
+    color: '#888',
+    marginBottom: 12,
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 8,
+  },
+  button: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 4,
+    marginLeft: 12,
+    minWidth: 100,
+    alignItems: 'center',
+  },
+  buttonText: {
+    color: 'white',
+    fontWeight: '500',
   },
   center: {
     justifyContent: 'center',
@@ -281,6 +350,21 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: '#888',
     marginTop: 20,
+  },
+  listContainer: {
+    paddingBottom: 20,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  errorContainer: {
+    padding: 16,
+    backgroundColor: '#ffebee',
+    borderRadius: 4,
+    marginBottom: 16,
   },
 });
 
