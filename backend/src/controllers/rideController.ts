@@ -16,12 +16,23 @@ export const getRides = async (req: Request, res: Response) => {
     
     // Handle from (start point) search (case-insensitive partial match)
     if (from && typeof from === 'string' && from.trim() !== '') {
-      query.startPoint = { $regex: from.trim(), $options: 'i' };
+      const searchTerm = from.trim();
+      query.$or = [
+        { startPoint: { $regex: searchTerm, $options: 'i' } },
+        { 'stoppages.name': { $regex: searchTerm, $options: 'i' } }
+      ];
     }
     
     // Handle to (end point) search (case-insensitive partial match)
     if (to && typeof to === 'string' && to.trim() !== '') {
-      query.endPoint = { $regex: to.trim(), $options: 'i' };
+      const searchTerm = to.trim();
+      query.$and = query.$and || [];
+      query.$and.push({
+        $or: [
+          { endPoint: { $regex: searchTerm, $options: 'i' } },
+          { 'stoppages.name': { $regex: searchTerm, $options: 'i' } }
+        ]
+      });
     }
     
     // Handle date filter (exact date match)

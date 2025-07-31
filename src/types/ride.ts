@@ -1,6 +1,7 @@
 export interface Stoppage {
   name: string;
   order: number;
+  rate?: number; // Optional rate for the stoppage
 }
 
 export interface User {
@@ -24,11 +25,18 @@ export interface BookingRequest {
   updatedAt: string;
 }
 
+export interface Coordinates {
+  latitude: number;
+  longitude: number;
+}
+
 export interface Ride {
   _id?: string;       // MongoDB-style ID (optional)
   id?: string;        // Standard ID (optional)
   startPoint: string;
   endPoint: string;
+  startPointCoords?: Coordinates;
+  endPointCoords?: Coordinates;
   stoppages: Stoppage[];
   travelDate: string;
   availableSeats: number;
@@ -43,6 +51,8 @@ export interface Ride {
 export interface CreateRideInput {
   startPoint: string;
   endPoint: string;
+  startPointCoords?: Coordinates;
+  endPointCoords?: Coordinates;
   stoppages: Omit<Stoppage, 'order'>[];
   travelDate: string;
   availableSeats: number | string;

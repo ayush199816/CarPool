@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Platform, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Platform, ActivityIndicator, Modal } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useRide } from '../context/RideContext';
 import { useAuth } from '../context/AuthContext';
 import { SCREENS } from '../navigation/types';
 import { CreateRideInput } from '../types/ride';
-import { TextInput } from 'react-native-paper';
+import { TextInput, Button } from 'react-native-paper';
 import { format } from 'date-fns';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import MapLocationPicker from '../components/MapLocationPicker';
+import * as Location from 'expo-location';
 
 const AddRideScreen = () => {
   const navigation = useNavigation();
@@ -27,14 +29,51 @@ const AddRideScreen = () => {
   const [selectedTime, setSelectedTime] = useState<Date>(initialDate);
   
   // Initialize form data with selected date/time
-  const [formData, setFormData] = useState<CreateRideInput>({
+  const [formData, setFormData] = useState<CreateRideInput & {
+    startPointAddress: string;
+    endPointAddress: string;
+    startPointCoords?: { latitude: number; longitude: number };
+    endPointCoords?: { latitude: number; longitude: number };
+  }>({
     startPoint: '',
     endPoint: '',
+    startPointAddress: '',
+    endPointAddress: '',
     travelDate: initialDate.toISOString(),
     availableSeats: 1,
     pricePerSeat: 0,
     stoppages: []
   });
+
+  // State for map picker
+  const [showMapPicker, setShowMapPicker] = useState(false);
+  const [mapPickerField, setMapPickerField] = useState<'start' | 'end'>('start');
+  const [currentLocation, setCurrentLocation] = useState<{
+    latitude: number;
+    longitude: number;
+  } | null>(null);
+
+  // Request location permission and get current location
+  useEffect(() => {
+    (async () => {
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status === 'granted') {
+          const location = await Location.getCurrentPositionAsync({
+            accuracy: Location.Accuracy.High,
+          });
+          setCurrentLocation({
+            latitude: location.coords.latitude,
+            longitude: location.coords.longitude,
+          });
+        } else {
+          console.log('Location permission denied');
+        }
+      } catch (error) {
+        console.error('Error getting location:', error);
+      }
+    })();
+  }, []);
   
   // Update formData when date or time changes
   useEffect(() => {
@@ -48,6 +87,7 @@ const AddRideScreen = () => {
   }, [selectedDate, selectedTime]);
   
   const [currentStoppage, setCurrentStoppage] = useState('');
+  const [currentStoppageRate, setCurrentStoppageRate] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -79,6 +119,42 @@ const AddRideScreen = () => {
     checkVerifiedVehicle();
   }, [user, getVerifiedVehicles]);
 
+  // Handle location selection from map picker
+  const handleLocationSelect = (location: {
+    latitude: number;
+    longitude: number;
+    address: string;
+  }) => {
+    if (mapPickerField === 'start') {
+      setFormData(prev => ({
+        ...prev,
+        startPoint: location.address,
+        startPointAddress: location.address,
+        startPointCoords: {
+          latitude: location.latitude,
+          longitude: location.longitude,
+        },
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        endPoint: location.address,
+        endPointAddress: location.address,
+        endPointCoords: {
+          latitude: location.latitude,
+          longitude: location.longitude,
+        },
+      }));
+    }
+    setShowMapPicker(false);
+  };
+
+  // Open map picker for start or end point
+  const openMapPicker = (field: 'start' | 'end') => {
+    setMapPickerField(field);
+    setShowMapPicker(true);
+  };
+
   const handleInputChange = (field: keyof typeof formData, value: string | number | Date) => {
     setFormData(prev => ({
       ...prev,
@@ -106,12 +182,36 @@ const AddRideScreen = () => {
   const handleAddStoppage = () => {
     if (!currentStoppage.trim()) return;
     
+    const rate = currentStoppageRate ? parseFloat(currentStoppageRate) : undefined;
+    
     setFormData(prev => ({
       ...prev,
-      stoppages: [...prev.stoppages, { name: currentStoppage }],
+      stoppages: [
+        ...prev.stoppages, 
+        { 
+          name: currentStoppage, 
+          order: prev.stoppages.length + 1,
+          rate: rate && !isNaN(rate) ? rate : undefined
+        },
+      ],
     }));
     
     setCurrentStoppage('');
+    setCurrentStoppageRate('');
+  };
+  
+  const handleStoppageRateChange = (index: number, value: string) => {
+    const newStoppages = [...formData.stoppages];
+    const rate = value ? parseFloat(value) : undefined;
+    newStoppages[index] = {
+      ...newStoppages[index],
+      rate: !isNaN(rate as number) ? rate : undefined
+    };
+    
+    setFormData(prev => ({
+      ...prev,
+      stoppages: newStoppages,
+    }));
   };
 
   const handleRemoveStoppage = (index: number) => {
@@ -172,20 +272,22 @@ const AddRideScreen = () => {
       if (!user?._id) {
         throw new Error('User not authenticated or missing user ID');
       }
-      
+
       // Create a new object without the driver field
       const { driver, ...formDataWithoutDriver } = formData as any;
       
-      const rideData: CreateRideInput & { driverId: string } = {
+      const rideData = {
         ...formDataWithoutDriver,
         travelDate: new Date(formData.travelDate).toISOString(),
         availableSeats: typeof formData.availableSeats === 'number' 
           ? formData.availableSeats 
-          : parseInt(formData.availableSeats, 10),
+          : parseInt(formData.availableSeats as string, 10),
         pricePerSeat: typeof formData.pricePerSeat === 'number'
           ? formData.pricePerSeat
-          : parseFloat(formData.pricePerSeat),
-        driverId: user._id // Only include driverId
+          : parseFloat(formData.pricePerSeat as string),
+        driverId: user._id,
+        startPointCoords: formData.startPointCoords,
+        endPointCoords: formData.endPointCoords
       };
       
       console.log('Creating ride with data:', JSON.stringify(rideData, null, 2));
@@ -193,19 +295,29 @@ const AddRideScreen = () => {
       const result = await createRide(rideData);
       console.log('Ride created successfully:', result);
       
-      Alert.alert(
-        'Success',
-        'Ride offered successfully!',
-        [
-          {
-            text: 'OK',
-            onPress: () => navigation.navigate(SCREENS.RIDE_LIST as never),
-          },
-        ]
-      );
-    } catch (error) {
+      // Reset form
+      setFormData({
+        startPoint: '',
+        endPoint: '',
+        startPointAddress: '',
+        endPointAddress: '',
+        travelDate: initialDate.toISOString(),
+        availableSeats: 1,
+        pricePerSeat: 0,
+        stoppages: [],
+        startPointCoords: undefined,
+        endPointCoords: undefined,
+      });
+      setCurrentStoppage('');
+      setSelectedDate(initialDate);
+      setSelectedTime(initialDate);
+
+      // Navigate to ride list
+      navigation.navigate(SCREENS.RIDE_LIST as never);
+      Alert.alert('Success', 'Ride created successfully!');
+    } catch (error: any) {
       console.error('Error creating ride:', error);
-      Alert.alert('Error', 'Failed to create ride. Please try again.');
+      Alert.alert('Error', error.message || 'Failed to create ride. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -246,36 +358,42 @@ const AddRideScreen = () => {
       </View>
       <View style={styles.formGroup}>
         <Text style={styles.label}>From*</Text>
-        <TextInput
-          mode="outlined"
-          placeholder="Starting point"
-          value={formData.startPoint}
-          onChangeText={(text) => handleInputChange('startPoint', text)}
-          style={styles.input}
-          theme={{
-            colors: {
-              primary: '#007AFF',
-              background: 'white',
-            },
-          }}
-        />
+        <View style={styles.locationInputContainer}>
+          <TextInput
+            label="Start Point *"
+            value={formData.startPoint}
+            onChangeText={(text) => handleInputChange('startPoint', text)}
+            style={[styles.input, styles.locationInput]}
+            mode="outlined"
+            right={
+              <TextInput.Icon 
+                icon="map-marker" 
+                onPress={() => openMapPicker('start')} 
+                forceTextInputFocus={false}
+              />
+            }
+          />
+        </View>
       </View>
 
       <View style={styles.formGroup}>
         <Text style={styles.label}>To*</Text>
-        <TextInput
-          mode="outlined"
-          placeholder="Destination"
-          value={formData.endPoint}
-          onChangeText={(text) => handleInputChange('endPoint', text)}
-          style={styles.input}
-          theme={{
-            colors: {
-              primary: '#007AFF',
-              background: 'white',
-            },
-          }}
-        />
+        <View style={styles.locationInputContainer}>
+          <TextInput
+            label="End Point *"
+            value={formData.endPoint}
+            onChangeText={(text) => handleInputChange('endPoint', text)}
+            style={[styles.input, styles.locationInput]}
+            mode="outlined"
+            right={
+              <TextInput.Icon 
+                icon="map-marker" 
+                onPress={() => openMapPicker('end')} 
+                forceTextInputFocus={false}
+              />
+            }
+          />
+        </View>
       </View>
 
       <View style={styles.row}>
@@ -373,36 +491,73 @@ const AddRideScreen = () => {
       <View style={styles.formGroup}>
         <Text style={styles.label}>Stoppages (optional)</Text>
         <View style={styles.stoppageContainer}>
-          <TextInput
-            mode="outlined"
-            placeholder="Add a stop along the way"
-            value={currentStoppage}
-            onChangeText={setCurrentStoppage}
-            style={[styles.input, { flex: 1, marginRight: 8 }]}
-            onSubmitEditing={handleAddStoppage}
-            blurOnSubmit={false}
-            returnKeyType="done"
-            theme={{
-              colors: {
-                primary: '#007AFF',
-                background: 'white',
-              },
-            }}
-          />
-          <TouchableOpacity 
-            style={styles.addButton}
-            onPress={handleAddStoppage}
-            disabled={!currentStoppage.trim()}
-          >
-            <Text style={styles.addButtonText}>Add</Text>
-          </TouchableOpacity>
+          <View style={{ flex: 1, flexDirection: 'row' }}>
+            <TextInput
+              mode="outlined"
+              placeholder="Stop name"
+              value={currentStoppage}
+              onChangeText={setCurrentStoppage}
+              style={[styles.input, { flex: 2, marginRight: 8 }]}
+              onSubmitEditing={handleAddStoppage}
+              blurOnSubmit={false}
+              returnKeyType="done"
+              theme={{
+                colors: {
+                  primary: '#007AFF',
+                  background: 'white',
+                },
+              }}
+            />
+            <TextInput
+              mode="outlined"
+              placeholder="Rate (₹)"
+              value={currentStoppageRate}
+              onChangeText={setCurrentStoppageRate}
+              style={[styles.input, { flex: 1, marginRight: 8 }]}
+              keyboardType="decimal-pad"
+              onSubmitEditing={handleAddStoppage}
+              blurOnSubmit={false}
+              returnKeyType="done"
+              theme={{
+                colors: {
+                  primary: '#007AFF',
+                  background: 'white',
+                },
+              }}
+              left={<TextInput.Affix text="₹" />}
+            />
+            <TouchableOpacity 
+              style={[styles.addButton, { marginLeft: 0 }]}
+              onPress={handleAddStoppage}
+              disabled={!currentStoppage.trim()}
+            >
+              <Text style={styles.addButtonText}>Add</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {formData.stoppages.length > 0 && (
           <View style={styles.stoppagesList}>
             {formData.stoppages.map((stop, index) => (
               <View key={index} style={styles.stoppageItem}>
-                <Text style={styles.stoppageText}>{stop.name}</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.stoppageText}>{stop.name}</Text>
+                  <TextInput
+                    mode="outlined"
+                    placeholder="Rate (₹)"
+                    value={stop.rate?.toString() || ''}
+                    onChangeText={(text) => handleStoppageRateChange(index, text)}
+                    style={[styles.input, { marginTop: 4, height: 40 }]}
+                    keyboardType="decimal-pad"
+                    theme={{
+                      colors: {
+                        primary: '#007AFF',
+                        background: 'white',
+                      },
+                    }}
+                    left={<TextInput.Affix text="₹" />}
+                  />
+                </View>
                 <TouchableOpacity 
                   onPress={() => handleRemoveStoppage(index)}
                   style={styles.removeButton}
@@ -424,6 +579,32 @@ const AddRideScreen = () => {
           {isSubmitting ? 'Offering Ride...' : 'Offer Ride'}
         </Text>
       </TouchableOpacity>
+
+      {/* Map Location Picker Modal */}
+      <Modal
+        visible={showMapPicker}
+        animationType="slide"
+        onRequestClose={() => setShowMapPicker(false)}
+      >
+        <View style={{ flex: 1 }}>
+          <MapLocationPicker
+            onLocationSelect={handleLocationSelect}
+            initialLocation={{
+              latitude: currentLocation?.latitude || 20.5937, // Default to center of India
+              longitude: currentLocation?.longitude || 78.9629,
+              address: mapPickerField === 'start' ? formData.startPoint : formData.endPoint,
+            }}
+            label={`Select ${mapPickerField === 'start' ? 'Pickup' : 'Drop-off'} Location`}
+          />
+          <Button 
+            mode="contained" 
+            onPress={() => setShowMapPicker(false)}
+            style={styles.closeButton}
+          >
+            Close Map
+          </Button>
+        </View>
+      </Modal>
     </ScrollView>
   );
 };
@@ -490,6 +671,17 @@ const styles = StyleSheet.create({
   formGroup: {
     marginBottom: 20,
   },
+  input: {
+    marginBottom: 16,
+    backgroundColor: '#fff',
+  },
+  locationInputContainer: {
+    position: 'relative',
+    marginBottom: 16,
+  },
+  locationInput: {
+    flex: 1,
+  },
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -500,9 +692,6 @@ const styles = StyleSheet.create({
     color: '#333',
     marginBottom: 8,
     marginLeft: 4,
-  },
-  input: {
-    backgroundColor: 'white',
   },
   dateInput: {
     height: 50,
@@ -527,8 +716,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#007AFF',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderRadius: 4,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
     marginLeft: 8,
+    height: 56, // Match the height of TextInput
   },
   addButtonText: {
     color: 'white',
@@ -539,19 +731,18 @@ const styles = StyleSheet.create({
   },
   stoppageItem: {
     flexDirection: 'row',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
-    alignItems: 'center',
     backgroundColor: 'white',
     padding: 12,
-    borderRadius: 4,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: '#eee',
+    borderRadius: 8,
+    marginBottom: 12,
+    elevation: 2,
   },
   stoppageText: {
-    flex: 1,
-    fontSize: 14,
+    fontSize: 16,
     color: '#333',
+    marginBottom: 8,
   },
   removeButton: {
     width: 24,
@@ -584,6 +775,14 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
+  },
+  closeButton: {
+    position: 'absolute',
+    bottom: 20,
+    left: 20,
+    right: 20,
+    backgroundColor: '#007AFF',
+    borderRadius: 8,
   },
 });
 
