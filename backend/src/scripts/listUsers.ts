@@ -1,6 +1,6 @@
-import mongoose from 'mongoose';
+import mongoose, { Connection } from 'mongoose';
 import dotenv from 'dotenv';
-import User from '../models/User';
+import User, { IUser } from '../models/User';
 
 dotenv.config();
 
@@ -12,12 +12,18 @@ const listUsers = async () => {
     await mongoose.connect(mongoUri);
     console.log('Connected to MongoDB successfully\n');
 
+    // Get database connection with null check
+    const db = mongoose.connection.db;
+    if (!db) {
+      throw new Error('MongoDB connection not established');
+    }
+    
     // Get database name
-    const dbName = mongoose.connection.db.databaseName;
+    const dbName = db.databaseName;
     console.log(`Connected to database: ${dbName}`);
     
     // List all collections
-    const collections = await mongoose.connection.db.listCollections().toArray();
+    const collections = await db.listCollections().toArray();
     console.log('\nCollections in the database:');
     console.log(collections.map(c => c.name).join(', '));
     
@@ -29,14 +35,20 @@ const listUsers = async () => {
       console.log('\nNo users found in the database.');
     } else {
       console.log(`\nFound ${users.length} user(s) in the database:`);
-      console.log(users.map(user => ({
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        isAdmin: user.isAdmin,
-        createdAt: user.createdAt,
-        updatedAt: user.updatedAt
-      })));
+      console.log(users.map(user => {
+        const userObj = user as IUser & { 
+          createdAt?: Date; 
+          updatedAt?: Date;
+        };
+        return {
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+          isAdmin: user.isAdmin,
+          createdAt: userObj.createdAt?.toISOString() || 'N/A',
+          updatedAt: userObj.updatedAt?.toISOString() || 'N/A'
+        };
+      }));
     }
     
     process.exit(0);

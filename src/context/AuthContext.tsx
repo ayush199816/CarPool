@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { authService } from '../services/authService';
-import { User, AuthContextType } from '../types/user';
+import { User, AuthContextType, VerificationStatus } from '../types/user';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -147,9 +147,40 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return user?.verification?.isVerified || false;
   };
 
-  const getVerifiedVehicles = () => {
-    if (!user?.verification?.vehicles) return [];
-    return user.verification.vehicles.filter(vehicle => vehicle.verified);
+  const getVerifiedVehicles = async () => {
+    if (!token) return [];
+    
+    try {
+      const response = await fetch(`${process.env.API_URL || 'http://192.168.31.174:5000/api'}/vehicles`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        console.error('Failed to fetch vehicles:', response.statusText);
+        return [];
+      }
+      
+      const data = await response.json();
+      console.log('Fetched vehicles:', data);
+      
+      if (!data.success || !Array.isArray(data.data)) {
+        console.error('Invalid vehicles data format:', data);
+        return [];
+      }
+      
+      const verifiedVehicles = data.data.filter((vehicle: any) => 
+        vehicle.verificationStatus === 'verified' && vehicle.isActive !== false
+      );
+      
+      console.log('Verified vehicles:', verifiedVehicles);
+      return verifiedVehicles;
+    } catch (error) {
+      console.error('Error fetching verified vehicles:', error);
+      return [];
+    }
   };
 
   const value = {
