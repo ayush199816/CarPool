@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Platform, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useRide } from '../context/RideContext';
 import { useAuth } from '../context/AuthContext';
@@ -53,17 +53,31 @@ const AddRideScreen = () => {
   useEffect(() => {
     const checkVerifiedVehicle = async () => {
       try {
-        const verifiedVehicles = getVerifiedVehicles?.() || [];
-        setHasVerifiedVehicle(verifiedVehicles.length > 0);
+        console.log('Current user:', user);
+        
+        if (!getVerifiedVehicles) {
+          console.error('getVerifiedVehicles is not available');
+          setHasVerifiedVehicle(false);
+          return;
+        }
+        
+        const verifiedVehicles = await getVerifiedVehicles();
+        console.log('Verified vehicles count:', verifiedVehicles.length);
+        
+        const hasVehicles = verifiedVehicles.length > 0;
+        console.log('Has verified vehicles:', hasVehicles);
+        
+        setHasVerifiedVehicle(hasVehicles);
       } catch (error) {
         console.error('Error checking verified vehicles:', error);
+        setHasVerifiedVehicle(false);
       } finally {
         setIsLoading(false);
       }
     };
 
     checkVerifiedVehicle();
-  }, []);
+  }, [user, getVerifiedVehicles]);
 
   const handleInputChange = (field: keyof typeof formData, value: string | number | Date) => {
     setFormData(prev => ({
@@ -197,8 +211,39 @@ const AddRideScreen = () => {
     }
   };
 
+  if (isLoading) {
+    return (
+      <View style={[styles.container, styles.center]}>
+        <ActivityIndicator size="large" color="#007AFF" />
+      </View>
+    );
+  }
+
+  if (!hasVerifiedVehicle) {
+    return (
+      <View style={[styles.container, styles.center, { padding: 20 }]}>
+        <Text style={styles.title}>Vehicle Required</Text>
+        <Text style={styles.subtitle}>You need to have at least one verified vehicle to create a ride.</Text>
+        <Text style={styles.instruction}>Please add and verify your vehicle in the Profile section.</Text>
+        
+        <TouchableOpacity 
+          style={styles.primaryButton}
+          onPress={() => navigation.navigate('Profile' as never)}
+        >
+          <Text style={styles.buttonText}>Go to Profile</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   return (
     <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
+      <View style={styles.header}>
+        <Text style={styles.title}>Offer a New Ride</Text>
+        <View style={styles.verifiedBadge}>
+          <Text style={styles.verifiedBadgeText}>✓ Verified Vehicle</Text>
+        </View>
+      </View>
       <View style={styles.formGroup}>
         <Text style={styles.label}>From*</Text>
         <TextInput
@@ -388,6 +433,59 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f5f5f5',
     padding: 16,
+  },
+  center: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    color: '#333',
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  verifiedBadge: {
+    backgroundColor: '#4CAF50',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+  },
+  verifiedBadgeText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 10,
+  },
+  instruction: {
+    fontSize: 14,
+    color: '#888',
+    textAlign: 'center',
+    marginBottom: 30,
+  },
+  primaryButton: {
+    backgroundColor: '#007AFF',
+    padding: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+    width: '100%',
+    marginTop: 10,
+  },
+  buttonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
   },
   formGroup: {
     marginBottom: 20,

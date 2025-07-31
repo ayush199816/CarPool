@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../context/AuthContext';
-import { SCREENS, ADMIN_SCREENS } from '../../navigation/types';
+import { ADMIN_SCREENS } from '../../navigation/types';
+import { StackNavigationProp } from '@react-navigation/stack';
+import { RootStackParamList, AdminStackParamList } from '../../navigation/types';
 import { getStats } from '../../services/adminService';
 
 interface AdminStats {
@@ -13,7 +15,7 @@ interface AdminStats {
 }
 
 const AdminPanel = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const { user, logout } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -56,15 +58,16 @@ const AdminPanel = () => {
   const handleLogout = async () => {
     try {
       await logout();
-      navigation.navigate(SCREENS.LOGIN as never);
+      navigation.navigate('Login');
     } catch (error) {
       Alert.alert('Error', 'Failed to logout');
     }
   };
 
-  const navigateToScreen = (screen: keyof typeof ADMIN_SCREENS) => {
-    // @ts-ignore - Navigation type will be resolved at runtime
-    navigation.navigate(screen);
+  const navigateToScreen = (screen: keyof AdminStackParamList) => {
+    // Convert the screen name to the correct format for the Admin stack
+    const adminScreen = screen as keyof AdminStackParamList;
+    navigation.navigate('Admin', { screen: adminScreen });
   };
 
   if (!user?.isAdmin) {
@@ -108,14 +111,14 @@ const AdminPanel = () => {
         <View style={styles.actionsContainer}>
           <TouchableOpacity 
             style={styles.actionButton}
-            onPress={() => navigateToScreen('AdminUsers')}
+            onPress={() => navigateToScreen(ADMIN_SCREENS.USERS)}
           >
             <Text style={styles.actionText}>Manage Users</Text>
             <Text style={styles.actionSubtext}>{stats.totalUsers} total users</Text>
           </TouchableOpacity>
           <TouchableOpacity 
             style={styles.actionButton}
-            onPress={() => navigateToScreen('AdminVehicleApprovals')}
+            onPress={() => navigateToScreen(ADMIN_SCREENS.VEHICLE_APPROVALS)}
           >
             <Text style={styles.actionText}>Vehicle Approvals</Text>
             <Text style={styles.actionSubtext}>{stats.pendingVerifications} pending</Text>

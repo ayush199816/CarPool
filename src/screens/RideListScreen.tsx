@@ -162,7 +162,7 @@ const RideListScreen = () => {
         <Text style={styles.rideRoute}>
           {item.startPoint} → {item.endPoint}
         </Text>
-        <Text style={styles.ridePrice}>${item.pricePerSeat} per seat</Text>
+        <Text style={styles.ridePrice}>₹{item.pricePerSeat} per seat</Text>
       </View>
       
       <Text style={styles.rideDate}>
