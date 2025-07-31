@@ -153,33 +153,61 @@ const RideListScreen = () => {
     navigation.navigate(SCREENS.RIDE_DETAILS, { rideId });
   };
 
-  const renderRideItem = ({ item }: { item: Ride }) => (
-    <TouchableOpacity 
-      style={styles.rideCard}
-      onPress={() => handleRidePress(item)}
-    >
-      <View style={styles.rideHeader}>
-        <Text style={styles.rideRoute}>
-          {item.startPoint} → {item.endPoint}
-        </Text>
-        <Text style={styles.ridePrice}>₹{item.pricePerSeat} per seat</Text>
-      </View>
-      
-      <Text style={styles.rideDate}>
-        {format(new Date(item.travelDate), 'EEE, MMM d, yyyy • h:mm a')}
-      </Text>
-      
-      <View style={styles.rideFooter}>
-        <Text style={styles.rideSeats}>
-          {item.availableSeats} seat{item.availableSeats !== 1 ? 's' : ''} available
-        </Text>
-        {item.stoppages.length > 0 && (
-          <Text style={styles.rideStoppages}>
-            {item.stoppages.length} stop{item.stoppages.length !== 1 ? 's' : ''} along the way
+  const RideItem = React.memo(({ item, onPress }: { item: Ride, onPress: (ride: Ride) => void }) => {
+    const [showStoppages, setShowStoppages] = useState(false);
+    
+    return (
+      <View style={styles.rideCard}>
+        <TouchableOpacity onPress={() => onPress(item)}>
+          <View style={styles.rideHeader}>
+            <Text style={styles.rideRoute}>
+              {item.startPoint} → {item.endPoint}
+            </Text>
+            <Text style={styles.ridePrice}>₹{item.pricePerSeat} per seat</Text>
+          </View>
+          
+          <Text style={styles.rideDate}>
+            {format(new Date(item.travelDate), 'EEE, MMM d, yyyy • h:mm a')}
           </Text>
+          
+          <View style={styles.rideFooter}>
+            <Text style={styles.rideSeats}>
+              {item.availableSeats} seat{item.availableSeats !== 1 ? 's' : ''} available
+            </Text>
+            {item.stoppages && item.stoppages.length > 0 && (
+              <TouchableOpacity 
+                onPress={(e) => {
+                  e.stopPropagation();
+                  setShowStoppages(!showStoppages);
+                }}
+              >
+                <Text style={styles.rideStoppages}>
+                  {item.stoppages.length} stop{item.stoppages.length !== 1 ? 's' : ''} along the way {showStoppages ? '▲' : '▼'}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </TouchableOpacity>
+        
+        {showStoppages && item.stoppages && item.stoppages.length > 0 && (
+          <View style={styles.stoppagesContainer}>
+            <Text style={styles.stoppagesTitle}>Stops:</Text>
+            {item.stoppages.map((stop, index) => (
+              <View key={index} style={styles.stoppageItem}>
+                <Text style={styles.stoppageName}>{stop.name}</Text>
+                {stop.rate && (
+                  <Text style={styles.stoppageRate}>₹{stop.rate}</Text>
+                )}
+              </View>
+            ))}
+          </View>
         )}
       </View>
-    </TouchableOpacity>
+    );
+  });
+
+  const renderRideItem = ({ item }: { item: Ride }) => (
+    <RideItem item={item} onPress={handleRidePress} />
   );
 
   // Handle search button press
@@ -330,27 +358,77 @@ const RideListScreen = () => {
   );
 };
 
+// Theme colors
+const COLORS = {
+  // Primary Colors
+  primary: '#0B1F3A',        // Navy Blue
+  primaryLight: '#1E3A5F',   // Lighter Navy
+  primaryDark: '#051123',    // Darker Navy
+  
+  // Secondary Colors (CTAs and Highlights)
+  secondary: '#FF5722',      // Flame Orange
+  secondaryLight: '#FF8A50', // Lighter Orange
+  secondaryDark: '#E64A19',  // Darker Orange
+  
+  // Accent Colors
+  accent: '#FFC107',         // Amber Yellow
+  accentLight: '#FFD54F',    // Lighter Amber
+  accentDark: '#FFA000',     // Darker Amber
+  
+  // UI Colors
+  background: '#F5F5F5',     // Soft Gray
+  card: '#FFFFFF',           // White
+  text: '#212121',           // Almost Black
+  textSecondary: '#546E7A',  // Secondary Text
+  border: '#B0BEC5',         // Cool Gray Blue
+  white: '#FFFFFF',
+  black: '#000000',
+  success: '#4CAF50',
+  error: '#F44336',
+  
+  // Additional UI Colors
+  inputBackground: '#FFFFFF',
+  inputBorder: '#B0BEC5',
+  shadow: 'rgba(11, 31, 58, 0.1)',
+  
+  // Status Colors
+  info: '#2196F3',
+  warning: '#FFC107',
+  danger: '#F44336',
+};
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: COLORS.background,
   },
   searchContainer: {
-    backgroundColor: '#fff',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    backgroundColor: COLORS.primary,
+    padding: 20,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    shadowColor: COLORS.black,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    elevation: 8,
+    zIndex: 10,
   },
   largeInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f8f8f8',
-    borderRadius: 10,
+    backgroundColor: COLORS.inputBackground,
+    borderRadius: 12,
     paddingHorizontal: 16,
     height: 56,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
+    marginBottom: 12,
+    borderWidth: 1.5,
+    borderColor: COLORS.inputBorder,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   largeInput: {
     flex: 1,
@@ -406,13 +484,18 @@ const styles = StyleSheet.create({
   },
   searchButton: {
     flexDirection: 'row',
-    backgroundColor: '#007AFF',
+    backgroundColor: COLORS.secondary,
     height: 56,
-    borderRadius: 10,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 16,
-    elevation: 2,
+    shadowColor: COLORS.secondaryDark,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 6,
+    borderWidth: 0,
   },
   searchButtonText: {
     color: '#fff',
@@ -428,25 +511,31 @@ const styles = StyleSheet.create({
     padding: 8,
     marginRight: 8,
     borderRadius: 20,
-    backgroundColor: 'white',
-    borderWidth: 1,
-    borderColor: '#ddd',
+    backgroundColor: COLORS.white,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: COLORS.black,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   headerContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    padding: 20,
+    backgroundColor: COLORS.primary,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    paddingBottom: 60,
+    marginBottom: -40,
+    zIndex: 1,
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: 'bold',
-    color: '#333',
+    color: COLORS.white,
   },
   refreshButton: {
     padding: 8,
@@ -462,15 +551,21 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
   },
   rideCard: {
-    backgroundColor: 'white',
+    backgroundColor: COLORS.card,
     borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
+    padding: 20,
+    marginBottom: 16,
+    shadowColor: COLORS.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowRadius: 6,
+    elevation: 3,
+    borderLeftWidth: 4,
+    borderLeftColor: COLORS.primary,
+    marginHorizontal: 8,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderTopColor: COLORS.border,
   },
   rideHeader: {
     flexDirection: 'row',
@@ -478,21 +573,31 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   rideRoute: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
+    fontSize: 18,
+    fontWeight: '700',
+    color: COLORS.primary,
     flex: 1,
     marginRight: 8,
+    letterSpacing: 0.2,
+    lineHeight: 24,
   },
   ridePrice: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#007AFF',
+    color: COLORS.primary,
+    backgroundColor: COLORS.primary + '0D', // 5% opacity
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: COLORS.primary + '1A', // 10% opacity
+    overflow: 'hidden',
   },
   rideDate: {
     fontSize: 14,
-    color: '#666',
-    marginBottom: 12,
+    color: COLORS.textSecondary,
+    marginVertical: 8,
+    fontStyle: 'italic',
   },
   rideFooter: {
     flexDirection: 'row',
@@ -500,12 +605,78 @@ const styles = StyleSheet.create({
   },
   rideSeats: {
     fontSize: 14,
-    color: '#666',
+    fontWeight: '600',
+    color: COLORS.secondaryDark,
+    backgroundColor: COLORS.secondary + '0D', // 5% opacity
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: COLORS.secondary + '1A', // 10% opacity
+    overflow: 'hidden',
   },
   rideStoppages: {
-    fontSize: 12,
-    color: '#888',
-    fontStyle: 'italic',
+    fontSize: 14,
+    color: COLORS.secondary,
+    fontWeight: '600',
+    textDecorationLine: 'none',
+    backgroundColor: COLORS.secondary + '0A', // 4% opacity
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: COLORS.secondary + '1A', // 10% opacity
+    overflow: 'hidden',
+  },
+  stoppagesContainer: {
+    marginTop: 14,
+    padding: 14,
+    backgroundColor: COLORS.white,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  stoppagesTitle: {
+    fontWeight: '600',
+    marginBottom: 10,
+    color: COLORS.primary,
+    fontSize: 15,
+    letterSpacing: 0.3,
+    textTransform: 'uppercase',
+    opacity: 0.8,
+  },
+  stoppageItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.primaryLight,
+  },
+  stoppageName: {
+    flex: 1,
+    color: COLORS.text,
+    fontSize: 15,
+    fontWeight: '500',
+  },
+  stoppageRate: {
+    fontWeight: '700',
+    color: COLORS.accentDark,
+    marginLeft: 10,
+    backgroundColor: COLORS.accent + '1A', // 10% opacity
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.accent + '33', // 20% opacity
+    overflow: 'hidden',
+    minWidth: 50,
+    textAlign: 'center',
   },
   filterContainer: {
     flexDirection: 'row',
