@@ -29,7 +29,7 @@ const VehicleSchema: Schema = new Schema(
     },
     make: {
       type: String,
-      required: [true, 'Make is required'],
+      required: [true, 'Company is required'],
       trim: true,
     },
     modelName: {

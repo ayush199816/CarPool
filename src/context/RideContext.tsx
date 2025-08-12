@@ -86,12 +86,12 @@ type Booking = {
     driver: {
       name: string;
     };
-    pricePerSeat?: number;
+    pricePerSeat: number;
     price?: number;
   };
   status: 'pending' | 'accepted' | 'rejected';
   seats: number;
-  pricePerSeat?: number;
+  pricePerSeat: number;
   price?: number;
   createdAt: string;
   updatedAt?: string;
@@ -377,13 +377,16 @@ export const RideProvider: React.FC<{ children: React.ReactNode }> = ({ children
         })
         .map((booking: any) => {
           try {
-            const bookingData = {
+            const pricePerSeat = booking.ride?.pricePerSeat || booking.pricePerSeat || 0;
+            const bookingData: Booking = {
               _id: booking._id || `booking-${Math.random().toString(36).substr(2, 9)}`,
+              pricePerSeat: pricePerSeat,
               ride: {
                 _id: booking.ride?._id || booking.rideId || `ride-${Math.random().toString(36).substr(2, 9)}`,
                 from: booking.ride?.startPoint || booking.startPoint || 'Unknown location',
                 to: booking.ride?.endPoint || booking.endPoint || 'Unknown destination',
                 date: booking.ride?.travelDate || booking.travelDate || new Date().toISOString(),
+                pricePerSeat: booking.ride?.pricePerSeat || booking.pricePerSeat || 0,
                 driver: booking.ride?.driver || booking.driver || { 
                   name: 'Unknown driver',
                   _id: 'unknown-driver',
@@ -409,7 +412,7 @@ export const RideProvider: React.FC<{ children: React.ReactNode }> = ({ children
             return null;
           }
         })
-        .filter((booking): booking is Booking => booking !== null);
+        .filter((booking): booking is NonNullable<typeof booking> => booking !== null);
       
       console.log(`[RideContext] Successfully processed ${bookings.length} bookings`);
       return bookings;

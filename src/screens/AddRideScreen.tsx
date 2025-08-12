@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Platform, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, Platform, ActivityIndicator, Modal } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useRide } from '../context/RideContext';
 import { useAuth } from '../context/AuthContext';
 import { SCREENS } from '../navigation/types';
 import { CreateRideInput } from '../types/ride';
-import { TextInput } from 'react-native-paper';
+import { TextInput, Button, RadioButton, Text } from 'react-native-paper';
+import { colors } from '../constants/theme';
 import { format } from 'date-fns';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import MapLocationPicker from '../components/MapLocationPicker';
+import * as Location from 'expo-location';
 
 const AddRideScreen = () => {
   const navigation = useNavigation();
@@ -15,6 +18,8 @@ const AddRideScreen = () => {
   const { user, getVerifiedVehicles } = useAuth();
   const [hasVerifiedVehicle, setHasVerifiedVehicle] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [vehicles, setVehicles] = useState<any[]>([]);
+  const [selectedVehicleId, setSelectedVehicleId] = useState<string>('');
   
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
@@ -27,14 +32,52 @@ const AddRideScreen = () => {
   const [selectedTime, setSelectedTime] = useState<Date>(initialDate);
   
   // Initialize form data with selected date/time
-  const [formData, setFormData] = useState<CreateRideInput>({
+  const [formData, setFormData] = useState<CreateRideInput & {
+    startPointAddress: string;
+    endPointAddress: string;
+    startPointCoords?: { latitude: number; longitude: number };
+    endPointCoords?: { latitude: number; longitude: number };
+  }>({
     startPoint: '',
     endPoint: '',
+    startPointAddress: '',
+    endPointAddress: '',
+    rideType: 'in-city', // Default to in-city
     travelDate: initialDate.toISOString(),
     availableSeats: 1,
     pricePerSeat: 0,
     stoppages: []
   });
+
+  // State for map picker
+  const [showMapPicker, setShowMapPicker] = useState(false);
+  const [mapPickerField, setMapPickerField] = useState<'start' | 'end'>('start');
+  const [currentLocation, setCurrentLocation] = useState<{
+    latitude: number;
+    longitude: number;
+  } | null>(null);
+
+  // Request location permission and get current location
+  useEffect(() => {
+    (async () => {
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status === 'granted') {
+          const location = await Location.getCurrentPositionAsync({
+            accuracy: Location.Accuracy.High,
+          });
+          setCurrentLocation({
+            latitude: location.coords.latitude,
+            longitude: location.coords.longitude,
+          });
+        } else {
+          console.log('Location permission denied');
+        }
+      } catch (error) {
+        console.error('Error getting location:', error);
+      }
+    })();
+  }, []);
   
   // Update formData when date or time changes
   useEffect(() => {
@@ -48,6 +91,7 @@ const AddRideScreen = () => {
   }, [selectedDate, selectedTime]);
   
   const [currentStoppage, setCurrentStoppage] = useState('');
+  const [currentStoppageRate, setCurrentStoppageRate] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -68,6 +112,12 @@ const AddRideScreen = () => {
         console.log('Has verified vehicles:', hasVehicles);
         
         setHasVerifiedVehicle(hasVehicles);
+        setVehicles(verifiedVehicles);
+        
+        // Select the first vehicle by default if available
+        if (verifiedVehicles.length > 0) {
+          setSelectedVehicleId(verifiedVehicles[0]._id);
+        }
       } catch (error) {
         console.error('Error checking verified vehicles:', error);
         setHasVerifiedVehicle(false);
@@ -78,6 +128,42 @@ const AddRideScreen = () => {
 
     checkVerifiedVehicle();
   }, [user, getVerifiedVehicles]);
+
+  // Handle location selection from map picker
+  const handleLocationSelect = (location: {
+    latitude: number;
+    longitude: number;
+    address: string;
+  }) => {
+    if (mapPickerField === 'start') {
+      setFormData(prev => ({
+        ...prev,
+        startPoint: location.address,
+        startPointAddress: location.address,
+        startPointCoords: {
+          latitude: location.latitude,
+          longitude: location.longitude,
+        },
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        endPoint: location.address,
+        endPointAddress: location.address,
+        endPointCoords: {
+          latitude: location.latitude,
+          longitude: location.longitude,
+        },
+      }));
+    }
+    setShowMapPicker(false);
+  };
+
+  // Open map picker for start or end point
+  const openMapPicker = (field: 'start' | 'end') => {
+    setMapPickerField(field);
+    setShowMapPicker(true);
+  };
 
   const handleInputChange = (field: keyof typeof formData, value: string | number | Date) => {
     setFormData(prev => ({
@@ -106,12 +192,36 @@ const AddRideScreen = () => {
   const handleAddStoppage = () => {
     if (!currentStoppage.trim()) return;
     
+    const rate = currentStoppageRate ? parseFloat(currentStoppageRate) : undefined;
+    
     setFormData(prev => ({
       ...prev,
-      stoppages: [...prev.stoppages, { name: currentStoppage }],
+      stoppages: [
+        ...prev.stoppages, 
+        { 
+          name: currentStoppage, 
+          order: prev.stoppages.length + 1,
+          rate: rate && !isNaN(rate) ? rate : undefined
+        },
+      ],
     }));
     
     setCurrentStoppage('');
+    setCurrentStoppageRate('');
+  };
+  
+  const handleStoppageRateChange = (index: number, value: string) => {
+    const newStoppages = [...formData.stoppages];
+    const rate = value ? parseFloat(value) : undefined;
+    newStoppages[index] = {
+      ...newStoppages[index],
+      rate: !isNaN(rate as number) ? rate : undefined
+    };
+    
+    setFormData(prev => ({
+      ...prev,
+      stoppages: newStoppages,
+    }));
   };
 
   const handleRemoveStoppage = (index: number) => {
@@ -137,6 +247,11 @@ const AddRideScreen = () => {
           },
         ]
       );
+      return;
+    }
+
+    if (!selectedVehicleId) {
+      Alert.alert('Error', 'Please select a vehicle');
       return;
     }
 
@@ -172,40 +287,57 @@ const AddRideScreen = () => {
       if (!user?._id) {
         throw new Error('User not authenticated or missing user ID');
       }
-      
-      // Create a new object without the driver field
-      const { driver, ...formDataWithoutDriver } = formData as any;
-      
-      const rideData: CreateRideInput & { driverId: string } = {
-        ...formDataWithoutDriver,
+
+      // Create ride data object with explicit fields to ensure no data loss
+      const rideData = {
+        startPoint: formData.startPoint,
+        endPoint: formData.endPoint,
+        rideType: formData.rideType,
+        vehicleId: selectedVehicleId,
         travelDate: new Date(formData.travelDate).toISOString(),
         availableSeats: typeof formData.availableSeats === 'number' 
           ? formData.availableSeats 
-          : parseInt(formData.availableSeats, 10),
+          : parseInt(formData.availableSeats as string, 10),
         pricePerSeat: typeof formData.pricePerSeat === 'number'
           ? formData.pricePerSeat
-          : parseFloat(formData.pricePerSeat),
-        driverId: user._id // Only include driverId
+          : parseFloat(formData.pricePerSeat as string),
+        driverId: user._id,
+        startPointCoords: formData.startPointCoords,
+        endPointCoords: formData.endPointCoords,
+        stoppages: formData.stoppages || []
       };
+      
+      console.log('Creating ride with data:', JSON.stringify(rideData, null, 2));
       
       console.log('Creating ride with data:', JSON.stringify(rideData, null, 2));
       
       const result = await createRide(rideData);
       console.log('Ride created successfully:', result);
       
-      Alert.alert(
-        'Success',
-        'Ride offered successfully!',
-        [
-          {
-            text: 'OK',
-            onPress: () => navigation.navigate(SCREENS.RIDE_LIST as never),
-          },
-        ]
-      );
-    } catch (error) {
+      // Reset form
+      setFormData({
+        startPoint: '',
+        endPoint: '',
+        startPointAddress: '',
+        endPointAddress: '',
+        rideType: 'in-city' as const, // Set default ride type
+        travelDate: initialDate.toISOString(),
+        availableSeats: 1,
+        pricePerSeat: 0,
+        stoppages: [],
+        startPointCoords: undefined,
+        endPointCoords: undefined,
+      });
+      setCurrentStoppage('');
+      setSelectedDate(initialDate);
+      setSelectedTime(initialDate);
+
+      // Navigate to ride list
+      navigation.navigate(SCREENS.RIDE_LIST as never);
+      Alert.alert('Success', 'Ride created successfully!');
+    } catch (error: any) {
       console.error('Error creating ride:', error);
-      Alert.alert('Error', 'Failed to create ride. Please try again.');
+      Alert.alert('Error', error.message || 'Failed to create ride. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -246,36 +378,42 @@ const AddRideScreen = () => {
       </View>
       <View style={styles.formGroup}>
         <Text style={styles.label}>From*</Text>
-        <TextInput
-          mode="outlined"
-          placeholder="Starting point"
-          value={formData.startPoint}
-          onChangeText={(text) => handleInputChange('startPoint', text)}
-          style={styles.input}
-          theme={{
-            colors: {
-              primary: '#007AFF',
-              background: 'white',
-            },
-          }}
-        />
+        <View style={styles.locationInputContainer}>
+          <TextInput
+            label="Start Point *"
+            value={formData.startPoint}
+            onChangeText={(text) => handleInputChange('startPoint', text)}
+            style={[styles.input, styles.locationInput]}
+            mode="outlined"
+            right={
+              <TextInput.Icon 
+                icon="map-marker" 
+                onPress={() => openMapPicker('start')} 
+                forceTextInputFocus={false}
+              />
+            }
+          />
+        </View>
       </View>
 
       <View style={styles.formGroup}>
         <Text style={styles.label}>To*</Text>
-        <TextInput
-          mode="outlined"
-          placeholder="Destination"
-          value={formData.endPoint}
-          onChangeText={(text) => handleInputChange('endPoint', text)}
-          style={styles.input}
-          theme={{
-            colors: {
-              primary: '#007AFF',
-              background: 'white',
-            },
-          }}
-        />
+        <View style={styles.locationInputContainer}>
+          <TextInput
+            label="End Point *"
+            value={formData.endPoint}
+            onChangeText={(text) => handleInputChange('endPoint', text)}
+            style={[styles.input, styles.locationInput]}
+            mode="outlined"
+            right={
+              <TextInput.Icon 
+                icon="map-marker" 
+                onPress={() => openMapPicker('end')} 
+                forceTextInputFocus={false}
+              />
+            }
+          />
+        </View>
       </View>
 
       <View style={styles.row}>
@@ -339,10 +477,33 @@ const AddRideScreen = () => {
             theme={{
               colors: {
                 primary: '#007AFF',
-                background: 'white',
+                background: '#007AFF',
               },
             }}
           />
+        </View>
+      </View>
+
+      <View style={styles.formGroup}>
+        <Text style={styles.label}>Select Vehicle*</Text>
+        <View style={styles.dropdownContainer}>
+          {vehicles.map((vehicle) => (
+            <TouchableOpacity
+              key={vehicle._id}
+              style={[
+                styles.vehicleOption,
+                selectedVehicleId === vehicle._id && styles.vehicleOptionSelected
+              ]}
+              onPress={() => setSelectedVehicleId(vehicle._id)}
+            >
+              <Text style={styles.vehicleText}>
+                {vehicle.make} {vehicle.model} ({vehicle.registrationNumber})
+              </Text>
+              {selectedVehicleId === vehicle._id && (
+                <Text style={styles.vehicleSelectedIcon}>✓</Text>
+              )}
+            </TouchableOpacity>
+          ))}
         </View>
       </View>
 
@@ -351,7 +512,7 @@ const AddRideScreen = () => {
         <TextInput
           mode="outlined"
           placeholder="e.g. 100"
-          value={formData.pricePerSeat as string}
+          value={formData.pricePerSeat.toString()}
           onChangeText={(text) => {
             // Only allow numbers and decimal point
             if (text === '' || /^\d*\.?\d*$/.test(text)) {
@@ -368,41 +529,119 @@ const AddRideScreen = () => {
             },
           }}
         />
+        <View style={styles.radioGroup}>
+          <Text style={styles.radioLabel}>Ride Type</Text>
+          <View style={styles.radioOptions}>
+            <View style={[
+              styles.radioOption,
+              formData.rideType === 'in-city' && styles.radioOptionSelected
+            ]}>
+              <RadioButton.Android
+                value="in-city"
+                status={formData.rideType === 'in-city' ? 'checked' : 'unchecked'}
+                onPress={() => setFormData({ ...formData, rideType: 'in-city' })}
+                color={colors.primary}
+                uncheckedColor={colors.gray}
+              />
+              <Text style={[
+                styles.radioText,
+                formData.rideType === 'in-city' && { color: colors.primary, fontWeight: '600' }
+              ]}>
+                In-City
+              </Text>
+            </View>
+            <View style={[
+              styles.radioOption,
+              formData.rideType === 'intercity' && styles.radioOptionSelected
+            ]}>
+              <RadioButton.Android
+                value="intercity"
+                status={formData.rideType === 'intercity' ? 'checked' : 'unchecked'}
+                onPress={() => setFormData({ ...formData, rideType: 'intercity' })}
+                color={colors.primary}
+                uncheckedColor={colors.gray}
+              />
+              <Text style={[
+                styles.radioText,
+                formData.rideType === 'intercity' && { color: colors.primary, fontWeight: '600' }
+              ]}>
+                Intercity
+              </Text>
+            </View>
+          </View>
+        </View>
       </View>
 
       <View style={styles.formGroup}>
         <Text style={styles.label}>Stoppages (optional)</Text>
         <View style={styles.stoppageContainer}>
-          <TextInput
-            mode="outlined"
-            placeholder="Add a stop along the way"
-            value={currentStoppage}
-            onChangeText={setCurrentStoppage}
-            style={[styles.input, { flex: 1, marginRight: 8 }]}
-            onSubmitEditing={handleAddStoppage}
-            blurOnSubmit={false}
-            returnKeyType="done"
-            theme={{
-              colors: {
-                primary: '#007AFF',
-                background: 'white',
-              },
-            }}
-          />
-          <TouchableOpacity 
-            style={styles.addButton}
-            onPress={handleAddStoppage}
-            disabled={!currentStoppage.trim()}
-          >
-            <Text style={styles.addButtonText}>Add</Text>
-          </TouchableOpacity>
+          <View style={{ flex: 1, flexDirection: 'row' }}>
+            <TextInput
+              mode="outlined"
+              placeholder="Stop name"
+              value={currentStoppage}
+              onChangeText={setCurrentStoppage}
+              style={[styles.input, { flex: 2, marginRight: 8 }]}
+              onSubmitEditing={handleAddStoppage}
+              blurOnSubmit={false}
+              returnKeyType="done"
+              theme={{
+                colors: {
+                  primary: '#007AFF',
+                  background: 'white',
+                },
+              }}
+            />
+            <TextInput
+              mode="outlined"
+              placeholder="Rate (₹)"
+              value={currentStoppageRate}
+              onChangeText={setCurrentStoppageRate}
+              style={[styles.input, { flex: 1, marginRight: 8 }]}
+              keyboardType="decimal-pad"
+              onSubmitEditing={handleAddStoppage}
+              blurOnSubmit={false}
+              returnKeyType="done"
+              theme={{
+                colors: {
+                  primary: '#007AFF',
+                  background: 'white',
+                },
+              }}
+              left={<TextInput.Affix text="₹" />}
+            />
+            <TouchableOpacity 
+              style={[styles.addButton, { marginLeft: 0 }]}
+              onPress={handleAddStoppage}
+              disabled={!currentStoppage.trim()}
+            >
+              <Text style={styles.addButtonText}>Add</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {formData.stoppages.length > 0 && (
           <View style={styles.stoppagesList}>
             {formData.stoppages.map((stop, index) => (
               <View key={index} style={styles.stoppageItem}>
-                <Text style={styles.stoppageText}>{stop.name}</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.stoppageText}>{stop.name}</Text>
+                  <TextInput
+                    mode="outlined"
+                    placeholder="Rate (₹)"
+                    value={stop.rate?.toString() || ''}
+                    onChangeText={(text) => handleStoppageRateChange(index, text)}
+                    style={[styles.input, { marginTop: 4, height: 40 }]}
+                    keyboardType="decimal-pad"
+                    theme={{
+                      colors: {
+                        primary: '#007AFF',
+                        background: 'white',
+                      },
+                    }}
+                    left={<TextInput.Affix text="₹" />}
+                  />
+                </View>
                 <TouchableOpacity 
                   onPress={() => handleRemoveStoppage(index)}
                   style={styles.removeButton}
@@ -424,15 +663,193 @@ const AddRideScreen = () => {
           {isSubmitting ? 'Offering Ride...' : 'Offer Ride'}
         </Text>
       </TouchableOpacity>
+
+      {/* Map Location Picker Modal */}
+      <Modal
+        visible={showMapPicker}
+        animationType="slide"
+        onRequestClose={() => setShowMapPicker(false)}
+      >
+        <View style={{ flex: 1 }}>
+          <MapLocationPicker
+            onLocationSelect={handleLocationSelect}
+            initialLocation={{
+              latitude: currentLocation?.latitude || 20.5937, // Default to center of India
+              longitude: currentLocation?.longitude || 78.9629,
+              address: mapPickerField === 'start' ? formData.startPoint : formData.endPoint,
+            }}
+            label={`Select ${mapPickerField === 'start' ? 'Pickup' : 'Drop-off'} Location`}
+          />
+          <Button 
+            mode="contained" 
+            onPress={() => setShowMapPicker(false)}
+            style={styles.closeButton}
+          >
+            Close Map
+          </Button>
+        </View>
+      </Modal>
     </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
+  // Main container
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.primary, // Using primary color for the main background
+  },
+  // Form container
+  formContainer: {
+    flex: 1,
     padding: 16,
+  },
+  // Form groups
+  formGroup: {
+    marginBottom: 0,
+    
+    backgroundColor: colors.primary,
+    borderRadius: 12,
+    padding: 0,
+    elevation: 2,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  // Labels
+  label: {
+    fontSize: 15,
+    fontWeight: '600',
+    marginTop: 0,
+    marginLeft: 10,
+    letterSpacing: 0.2,
+    color: colors.secondaryLight,
+  },
+  // Input fields
+  input: {
+    backgroundColor: colors.inputBackground,
+    borderWidth: 1,
+    borderColor: colors.inputBorder,
+    borderRadius: 10,
+    paddingHorizontal: 16,
+    marginBottom: 16,
+    fontSize: 15,
+    height: 50,
+    marginRight: 10,
+    marginLeft: 10,
+    color: colors.secondaryLight,
+  },
+  // Radio button group
+  radioGroup: {
+    marginBottom: 24,
+    backgroundColor: colors.card,
+    borderRadius: 12,
+    padding: 16,
+    elevation: 2,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  radioLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+    marginBottom: 12,
+    color: colors.primary,
+  },
+  radioOptions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  radioOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.background,
+    flex: 0.48,
+    justifyContent: 'center',
+  },
+  radioOptionSelected: {
+    backgroundColor: '#E3F2FD',
+    borderColor: '#007AFF',
+  },
+  radioText: {
+    marginLeft: 8,
+    fontSize: 15,
+    fontWeight: '500',
+    color: colors.text,
+  },
+  // Vehicle selection styles
+  dropdownContainer: {
+    marginBottom: 16,
+  },
+  vehicleOption: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 12,
+    borderWidth: 1,
+    borderColor: colors.inputBorder,
+    borderRadius: 8,
+    marginBottom: 8,
+    backgroundColor: colors.secondaryLight,
+  },
+  vehicleOptionSelected: {
+    borderColor: colors.secondary,
+    backgroundColor:'White',
+  },
+  vehicleText: {
+    fontSize: 15,
+    color: colors.secondaryLight,
+  },
+  vehicleSelectedIcon: {
+    color: colors.secondaryLight,
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  // Submit button
+  submitButton: {
+    backgroundColor: colors.secondary,
+    padding: 18,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 24,
+    marginBottom: 32,
+    elevation: 3,
+    shadowColor: colors.secondaryDark,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+  },
+  submitButtonText: {
+    color: colors.white,
+    fontSize: 17,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  submitButtonDisabled: {
+    backgroundColor: colors.secondaryLight,
+    opacity: 0.7,
+  },
+  // Map picker
+  mapButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+  },
+  mapButtonText: {
+    marginLeft: 8,
+    color: colors.primary,
+    fontSize: 14,
   },
   center: {
     flex: 1,
@@ -440,10 +857,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   title: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: 'bold',
-    marginBottom: 20,
-    color: '#333',
+    marginBottom: 2,
+    marginTop: 30,
+    color: colors.secondaryLight,
+    textAlign: 'center',
+    letterSpacing: 0.3,
   },
   header: {
     flexDirection: 'row',
@@ -452,138 +872,165 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   verifiedBadge: {
-    backgroundColor: '#4CAF50',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 12,
+    backgroundColor: 'white',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.secondaryLight,
+    marginLeft: 12,
+    marginTop: 25,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   verifiedBadgeText: {
-    color: 'white',
-    fontSize: 12,
-    fontWeight: 'bold',
+    color: colors.primary,
+    fontSize: 13,
+    fontWeight: '700',
   },
   subtitle: {
     fontSize: 16,
-    color: '#666',
+    color: 'white',
     textAlign: 'center',
     marginBottom: 10,
+    fontWeight: '500',
   },
   instruction: {
     fontSize: 14,
-    color: '#888',
+    color: 'white',
     textAlign: 'center',
     marginBottom: 30,
+    lineHeight: 20,
   },
   primaryButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: colors.secondary,
     padding: 15,
-    borderRadius: 8,
+    borderRadius: 12,
     alignItems: 'center',
     width: '100%',
     marginTop: 10,
+    elevation: 3,
+    shadowColor: colors.secondaryDark,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
   },
   buttonText: {
     color: 'white',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
-  formGroup: {
-    marginBottom: 20,
+  locationInputContainer: {
+    position: 'relative',
+    marginBottom: 16,
+  },
+  locationInput: {
+    flex: 1,
   },
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#333',
-    marginBottom: 8,
-    marginLeft: 4,
-  },
-  input: {
-    backgroundColor: 'white',
+    alignItems: 'center',
+    marginBottom: 16,
   },
   dateInput: {
-    height: 50,
+    height: 52,
     backgroundColor: 'white',
-    borderRadius: 4,
+    borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#ccc',
-    padding: 14,
+    borderColor: colors.secondaryLight,
+    padding: 16,
     justifyContent: 'center',
+    marginBottom: 16,
   },
   dateText: {
-    fontSize: 16,
-    color: '#333',
+    fontSize: 15,
+    color: colors.primary,
+    fontWeight: '500',
   },
-  // iOS specific styles can be added here if needed
+  // Stoppage related styles
   stoppageContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 8,
   },
   addButton: {
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 16,
+    backgroundColor: colors.secondary,
+    paddingHorizontal: 20,
     paddingVertical: 12,
-    borderRadius: 4,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
     marginLeft: 8,
+    height: 56,
+    elevation: 2,
+    shadowColor: colors.secondaryDark,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
   },
   addButtonText: {
     color: 'white',
-    fontWeight: '600',
+    fontWeight: '700',
+    fontSize: 15,
   },
   stoppagesList: {
     marginTop: 8,
   },
   stoppageItem: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    justifyContent: 'space-between',
     backgroundColor: 'white',
-    padding: 12,
-    borderRadius: 4,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: '#eee',
+    padding: 14,
+    borderRadius: 10,
+    marginBottom: 12,
+    elevation: 2,
+    borderLeftWidth: 4,
+    borderLeftColor: colors.secondary,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
   },
   stoppageText: {
+    fontSize: 15,
+    color: colors.primary,
+    fontWeight: '500',
     flex: 1,
-    fontSize: 14,
-    color: '#333',
   },
   removeButton: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#ff3b30',
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#fff',
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.secondaryLight,
+    marginLeft: 10,
   },
   removeButtonText: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: 'bold',
-    lineHeight: 20,
-    textAlign: 'center',
-    paddingBottom: 2,
-  },
-  submitButton: {
-    backgroundColor: '#007AFF',
-    padding: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 20,
-    marginBottom: 40,
-  },
-  submitButtonDisabled: {
-    backgroundColor: '#84c1ff',
-  },
-  submitButtonText: {
-    color: 'white',
+    color: colors.secondary,
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: 'bold',
+    lineHeight: 18,
+    textAlign: 'center',
+  },
+  closeButton: {
+    position: 'absolute',
+    bottom: 24,
+    left: 20,
+    right: 20,
+    backgroundColor: colors.secondary,
+    borderRadius: 12,
+    padding: 16,
+    elevation: 3,
+    shadowColor: colors.secondaryDark,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
   },
 });
 

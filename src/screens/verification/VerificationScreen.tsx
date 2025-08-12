@@ -17,14 +17,17 @@ interface VerificationRouteParams {
 }
 
 interface Vehicle {
-  id: string;
-  type: VehicleType;
-  number: string;
-  company: string;
-  model: string;
+  _id: string;
+  make: string;
+  modelName: string;
+  year: number;
   color: string;
-  rcDocument?: string;
-  verified: boolean;
+  licensePlate: string;
+  registrationNumber: string;
+  registrationExpiry: string | Date;
+  vehicleType?: string;
+  verificationStatus?: 'verified' | 'pending' | 'rejected';
+  isActive?: boolean;
 }
 
 type VerificationScreenNavigationProp = StackNavigationProp<AppStackParamList, 'Verification'>;
@@ -45,13 +48,16 @@ const VerificationScreen = () => {
   
   // Vehicle verification state
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-  const [currentVehicle, setCurrentVehicle] = useState<Omit<Vehicle, 'id' | 'verified'>>({
-    type: 'Car',
-    number: '',
-    company: '',
-    model: '',
+  const [currentVehicle, setCurrentVehicle] = useState<Omit<Vehicle, '_id' | 'verificationStatus'>>({
+    make: '',
+    modelName: '',
+    year: new Date().getFullYear(),
     color: '',
-    rcDocument: undefined,
+    licensePlate: '',
+    registrationNumber: '',
+    registrationExpiry: new Date(),
+    vehicleType: 'car',
+    isActive: true
   });
   
   const showMessage = useCallback((message: string) => {
@@ -190,44 +196,52 @@ const VerificationScreen = () => {
       return;
     }
     
-    if (!currentVehicle.number || !currentVehicle.company || !currentVehicle.model || !currentVehicle.color) {
+    if (!currentVehicle.make || !currentVehicle.modelName || !currentVehicle.licensePlate || !currentVehicle.registrationNumber) {
       showMessage('Please fill in all vehicle details.');
       return;
     }
     
-    if (!currentVehicle.rcDocument) {
-      showMessage('Please upload Registration Certificate.');
+    if (!currentVehicle.registrationExpiry) {
+      showMessage('Please set registration expiry date.');
       return;
     }
     
     try {
       setIsLoading(true);
       
-      const rcDocumentUrl = await uploadDocument(currentVehicle.rcDocument, 'rc');
-      if (!rcDocumentUrl) {
-        throw new Error('Failed to upload RC document');
-      }
+      // Note: If you need to upload documents, uncomment and modify this section
+      // const rcDocumentUrl = await uploadDocument(currentVehicle.rcDocument, 'rc');
+      // if (!rcDocumentUrl) {
+      //   throw new Error('Failed to upload RC document');
+      // }
       
       const newVehicle: Vehicle = {
-        id: Date.now().toString(),
-        type: currentVehicle.type,
-        number: currentVehicle.number,
-        company: currentVehicle.company,
-        model: currentVehicle.model,
+        _id: Date.now().toString(),
+        make: currentVehicle.make,
+        modelName: currentVehicle.modelName,
+        year: currentVehicle.year,
         color: currentVehicle.color,
-        rcDocument: rcDocumentUrl,
-        verified: false,
+        licensePlate: currentVehicle.licensePlate,
+        registrationNumber: currentVehicle.registrationNumber,
+        registrationExpiry: currentVehicle.registrationExpiry,
+        vehicleType: currentVehicle.vehicleType || 'car',
+        verificationStatus: 'pending',
+        isActive: true
       };
       
       setVehicles((prevVehicles) => [...prevVehicles, newVehicle]);
       
+      // Reset form
       setCurrentVehicle({
-        type: 'Car',
-        number: '',
-        company: '',
-        model: '',
+        make: '',
+        modelName: '',
+        year: new Date().getFullYear(),
         color: '',
-        rcDocument: undefined,
+        licensePlate: '',
+        registrationNumber: '',
+        registrationExpiry: new Date(),
+        vehicleType: 'car',
+        isActive: true
       });
       
       showMessage('Vehicle added successfully!');
@@ -288,7 +302,17 @@ const VerificationScreen = () => {
         await updateVerification?.({
           isVerified: user?.verification?.isVerified || false, // Preserve user's current overall verification status
           documents: user?.verification?.documents, // Preserve existing user documents
-          vehicles: vehicles, // Submit the updated list of vehicles
+          vehicles: vehicles.map(vehicle => ({
+            id: vehicle._id,
+            type: (vehicle.vehicleType || 'Car') as 'Car' | 'Bike' | 'Scooty',
+            number: vehicle.licensePlate,
+            company: vehicle.make,
+            model: vehicle.modelName,
+            color: vehicle.color,
+            verified: vehicle.verificationStatus === 'verified',
+            // Include rcDocument if needed, though it's not in the Vehicle interface
+            rcDocument: (vehicle as any).rcDocument
+          }))
         });
         
         showMessage('Your vehicle information has been saved.');
