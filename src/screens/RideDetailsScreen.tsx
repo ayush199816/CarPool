@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Linking, ActivityIndicator, Image, Modal, TextInput } from 'react-native';
+import RideMap from '../components/RideMap';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
@@ -16,6 +17,7 @@ import { useAuth } from '../context/AuthContext';
 import { SCREENS, RootStackParamList, MainTabParamList } from '../navigation/types';
 import { format, parseISO, isAfter, isBefore, isToday } from 'date-fns';
 import { Ionicons } from '@expo/vector-icons';
+import { colors } from '../constants/theme';
 import { Ride, BookingRequest } from '../types/ride';
 
 type RideDetailsScreenNavigationProp = StackNavigationProp<RootStackParamList, 'RideDetails'> & {
@@ -580,6 +582,18 @@ const RideDetailsScreen = () => {
 
       </View>
 
+      <View style={styles.mapContainer}>
+        <RideMap 
+          ride={{
+            startPoint: ride.startPoint,
+            endPoint: ride.endPoint,
+            startPointCoords: ride.startPointCoords,
+            endPointCoords: ride.endPointCoords
+          }} 
+          height={200}
+        />
+      </View>
+
       <View style={styles.detailsContainer}>
         <View style={styles.detailRow}>
           <View style={styles.detailItem}>
@@ -658,6 +672,38 @@ const RideDetailsScreen = () => {
                 </Text>
               </View>
             )}
+            
+            {/* Vehicle Information - Show if vehicle data is available and user has confirmed booking or is the ride owner */}
+            {ride.vehicleId && (hasConfirmedBooking || isOwner) && (
+              <View style={styles.vehicleInfoContainer}>
+                <View style={styles.sectionHeader}>
+                  <Ionicons name="car-sport-outline" size={20} color="#4A6FA5" />
+                  <Text style={styles.sectionTitle}>Vehicle Information</Text>
+                </View>
+                
+                {typeof ride.vehicleId === 'object' ? (
+                  <View style={styles.vehicleDetails}>
+                    <Text style={styles.vehicleName}>
+                      {ride.vehicleId.make} {ride.vehicleId.modelName} ({ride.vehicleId.year})
+                    </Text>
+                    <View style={styles.vehicleDetailRow}>
+                      <Ionicons name="pricetag" size={16} color="#4A6FA5" style={styles.detailIcon} />
+                      <Text style={styles.vehicleDetailText}>
+                        {ride.vehicleId.color} • {ride.vehicleId.registrationNumber}
+                      </Text>
+                    </View>
+                    {ride.vehicleId.verificationStatus === 'verified' && (
+                      <View style={styles.verifiedBadge}>
+                        <Ionicons name="checkmark-circle" size={14} color="#4CAF50" />
+                        <Text style={styles.verifiedBadgeText}>Verified</Text>
+                      </View>
+                    )}
+                  </View>
+                ) : (
+                  <Text style={styles.vehicleLoadingText}>Loading vehicle details...</Text>
+                )}
+              </View>
+            )}
           </View>
         </View>
 
@@ -706,8 +752,8 @@ const RideDetailsScreen = () => {
             style={[styles.actionButton, styles.editButton]}
             onPress={handleEdit}
           >
-            <Ionicons name="create" size={20} color="#007AFF" />
-            <Text style={[styles.actionButtonText, { color: '#007AFF' }]}>
+            <Ionicons name="create" size={20} color="#fff" />
+            <Text style={[styles.actionButtonText, { color: '#fff' }]}>
               Edit Ride
             </Text>
           </TouchableOpacity>
@@ -716,8 +762,8 @@ const RideDetailsScreen = () => {
             style={[styles.actionButton, styles.deleteButton]}
             onPress={handleDelete}
           >
-            <Ionicons name="trash" size={20} color="#FF3B30" />
-            <Text style={[styles.actionButtonText, { color: '#FF3B30' }]}>
+            <Ionicons name="trash" size={20} color="#fff" />
+            <Text style={[styles.actionButtonText, { color: '#fff' }]}>
               Delete Ride
             </Text>
           </TouchableOpacity>
@@ -730,15 +776,28 @@ const RideDetailsScreen = () => {
       {/* Book Ride Button - Only visible to non-owners for upcoming rides */}
       {!isOwner && isUpcoming && (
         <>
-          <TouchableOpacity 
-            style={styles.bookButton}
-            onPress={() => setShowBookingModal(true)}
-            disabled={isProcessing}
-          >
-            <Text style={styles.bookButtonText}>
-              {isProcessing ? 'Processing...' : 'Book This Ride'}
-            </Text>
-          </TouchableOpacity>
+          {hasConfirmedBooking ? (
+            <View style={styles.bookingConfirmedContainer}>
+              <Text style={styles.bookingConfirmedText}>You are already booked</Text>
+              <Text style={styles.paymentAmountText}>
+                Amount to pay: ₹{ride.pricePerSeat * (ride.bookingRequests?.find((req: any) => {
+                  const userId = typeof req.userId === 'string' ? req.userId : req.userId?._id;
+                  const passengerId = req.passenger?._id || (typeof req.passenger === 'string' ? req.passenger : null);
+                  return (userId === user?._id || passengerId === user?._id) && req.status === 'accepted';
+                })?.seats || 1)}
+              </Text>
+            </View>
+          ) : (
+            <TouchableOpacity 
+              style={styles.bookButton}
+              onPress={() => setShowBookingModal(true)}
+              disabled={isProcessing}
+            >
+              <Text style={styles.bookButtonText}>
+                {isProcessing ? 'Processing...' : 'Book This Ride'}
+              </Text>
+            </TouchableOpacity>
+          )}
 
           <Modal
             visible={showBookingModal}
@@ -789,10 +848,88 @@ const RideDetailsScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  // Layout
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#f8f9fa',
+  },
+  section: {
+    marginBottom: 20,
+  },
+  // Driver Section
+  driverSection: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 20,
+    margin: 15,
+    marginTop: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  driverHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  vehicleInfoContainer: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+  },
+  vehicleDetails: {
+    marginLeft: 8,
+    marginTop: 8,
+  },
+  vehicleName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 4,
+  },
+  vehicleDetailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  vehicleDetailText: {
+    fontSize: 14,
+    color: '#666',
+    marginLeft: 6,
+  },
+  vehicleLoadingText: {
+    fontStyle: 'italic',
+    color: '#999',
+    fontSize: 14,
+    marginLeft: 8,
+  },
+  verifiedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E8F5E9',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+    marginTop: 6,
+  },
+  verifiedBadgeText: {
+    color: '#2E7D32',
+    fontSize: 12,
+    fontWeight: '500',
+    marginLeft: 4,
+  },
+  mapContainer: {
+    marginHorizontal: 16,
+    marginTop: 16,
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  // Layout
+  scrollContent: {
+    paddingBottom: 30,
   },
   centered: {
     flex: 1,
@@ -804,12 +941,59 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    padding: 30,
+    backgroundColor: '#fff',
+    margin: 20,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  // Booking Confirmation Styles
+  bookingConfirmedContainer: {
+    backgroundColor: '#E8F5E9',
+    padding: 16,
+    borderRadius: 8,
+    margin: 16,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#C8E6C9',
+  },
+  bookingConfirmedText: {
+    color: '#2E7D32',
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  paymentAmountText: {
+    color: '#2E7D32',
+    fontSize: 16,
+  },
+  retryButton: {
+    backgroundColor: colors.primary,
+    padding: 10,
+    borderRadius: 5,
+    marginTop: 10,
+  },
+  retryButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
     padding: 20,
   },
   emptyStateText: {
-    marginTop: 10,
-    color: '#666',
+    marginTop: 15,
+    color: colors.text,
     fontSize: 16,
+    textAlign: 'center',
+    lineHeight: 24,
   },
   statusGroup: {
     marginBottom: 20,
@@ -922,20 +1106,21 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   
-  // Common UI Elements
+  // Section Headers
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 20,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: 'rgba(0, 0, 0, 0.08)',
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#2c3e50',
-    marginLeft: 8,
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.primary,
+    marginLeft: 10,
+    letterSpacing: 0.5,
   },
   requestCountBadge: {
     backgroundColor: '#e3f2fd',
@@ -958,18 +1143,39 @@ const styles = StyleSheet.create({
   },
   postedByText: {
     fontSize: 14,
-    color: '#666',
+    color: colors.secondaryLight,
     marginRight: 5,
   },
   authorName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: colors.secondaryLight,
   },
   
   // Route and Location
   routeContainer: {
-    marginVertical: 15,
+    marginVertical: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    padding: 18,
+    borderRadius: 14,
+    borderLeftWidth: 4,
+    borderLeftColor: colors.secondary,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  locationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  locationText: {
+    fontSize: 16,
+    color: '#fff',
+    marginLeft: 10,
+    flex: 1,
   },
   locationDot: {
     width: 24,
@@ -993,60 +1199,98 @@ const styles = StyleSheet.create({
     width: 2,
     height: 20,
     backgroundColor: '#ccc',
-    marginLeft: 11,
+    marginLeft: 0,
     marginVertical: 2,
   },
   locations: {
-    marginLeft: 15,
+    marginLeft: 30,
+    marginTop: -40,
   },
   startPoint: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: colors.secondary,
     marginBottom: 5,
   },
   endPoint: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
     marginTop: 5,
+    color: colors.secondary,
   },
   
   // Date and Time
+  
   dateTimeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 5,
+    marginVertical: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    padding: 12,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+    color: colors.secondary,
+    
   },
   icon: {
     width: 24,
     height: 24,
     marginRight: 10,
     tintColor: '#666',
-  },
-  dateTimeText: {
-    fontSize: 14,
-    color: '#666',
+    color: colors.secondary,
   },
   
-  // Ride Details Section
-  section: {
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    padding: 15,
-    margin: 10,
+  // Ride Details Header
+  header: {
+    
+    padding: 25,
+    backgroundColor: colors.primary,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+    paddingBottom: 30,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowRadius: 8,
+    elevation: 5,
+    marginBottom: 15,
+  },
+  headerContent: {
+    marginTop: 10,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#fff',
+    marginBottom: 5,
+  },
+  routeInfo: {
+    flex: 1,
+    marginLeft: 10,
+  },
+  routeText: {
+    color: '#fff',
+    fontSize: 16,
+    marginBottom: 3,
+    fontWeight: '500',
+  },
+  routeArrow: {
+    color: colors.secondary,
+    marginHorizontal: 5,
   },
   
   // Stops
   stopsContainer: {
-    marginTop: 10,
+    marginTop: 0,
   },
   stopItem: {
+    color: colors.secondaryLight,
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 10,
@@ -1055,12 +1299,12 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#666',
+    backgroundColor: colors.secondary,
     marginRight: 10,
   },
   stopText: {
     fontSize: 14,
-    color: '#666',
+    color: colors.secondaryLight,
   },
   
   // Buttons
@@ -1069,15 +1313,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 10,
-    borderRadius: 8,
-    marginHorizontal: 4,
+    paddingVertical: 14,
+    borderRadius: 10,
+    marginHorizontal: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    marginTop: 10,
   },
   actionButtonText: {
     color: '#fff',
-    fontSize: 14,
-    fontWeight: '500',
-    marginLeft: 6,
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
   },
   acceptButton: {
     backgroundColor: '#4CAF50',
@@ -1085,24 +1335,64 @@ const styles = StyleSheet.create({
   rejectButton: {
     backgroundColor: '#F44336',
   },
-  
+  bookButton: {
+    backgroundColor: colors.secondary,
+    margin: 20,
+    marginTop: 10,
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  bookButtonText: {
+    color: "#fff",
+    fontSize: 18,
+    fontWeight: '700',
+  },
   // Details and Status
   detailsContainer: {
-    marginTop: 10,
+    backgroundColor: colors.card,
+    margin: 15,
+    marginTop: -15,
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   detailRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    marginBottom: 15,
+    gap: 10,
   },
   detailItem: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.lightGray,
+    padding: 12,
+    borderRadius: 10,
+    justifyContent: 'center',
   },
   detailText: {
-    fontSize: 14,
-    color: '#666',
+    fontSize: 15,
+    color: colors.secondaryLight,
+    fontWeight: '500',
+    marginLeft: 8,
   },
-  
+  // Date Time Text
+  dateTimeText: {
+    fontSize: 15,
+    color: colors.secondaryLight,
+    fontWeight: '500',
+  },
   // Status Badges
   statusBadge: {
     paddingHorizontal: 8,
@@ -1123,11 +1413,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
   },
-  
-  // Driver Section
-  driverSection: {
-    marginTop: 15,
-  },
+  // Section
   driverInfo: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1162,54 +1448,61 @@ const styles = StyleSheet.create({
   driverName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: colors.secondary, // Orange color from theme
     marginBottom: 5,
   },
+  // Driver Details and Contact Styles
   driverDetailRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 3,
+    marginBottom: 8,
   },
   detailIcon: {
-    width: 16,
-    height: 16,
-    marginRight: 5,
-    tintColor: '#666',
+    width: 20,
+    height: 20,
+    marginRight: 10,
+    color: '#666',
   },
   driverDetailText: {
-    fontSize: 13,
-    color: '#666',
+    fontSize: 15,
+    color: colors.secondaryDark, // Darker orange for better contrast
+    flex: 1,
   },
   noContactInfo: {
-    fontSize: 13,
-    color: '#666',
+    fontSize: 14,
+    color: '#888',
     fontStyle: 'italic',
     marginTop: 5,
   },
   contactButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 10,
+    marginTop: 15,
   },
   contactButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 10,
+    padding: 12,
     borderRadius: 8,
     marginHorizontal: 5,
   },
   callButton: {
-    backgroundColor: '#E3F2FD',
+    backgroundColor: '#FFF3E0', // Light orange background for call button
+    borderWidth: 1,
+    borderColor: colors.secondaryLight,
   },
   messageButton: {
-    backgroundColor: '#E8F5E9',
+    backgroundColor: '#FFF3E0', // Light orange background for message button
+    borderWidth: 1,
+    borderColor: colors.secondaryLight,
   },
   contactButtonText: {
-    marginLeft: 5,
+    marginLeft: 8,
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: '600',
+    color: colors.secondary, // Orange color for contact button text
   },
   ownerActions: {
     marginTop: 15,
@@ -1220,36 +1513,20 @@ const styles = StyleSheet.create({
   deleteButton: {
     backgroundColor: '#F44336',
   },
-  bookButton: {
-    backgroundColor: '#4CAF50',
-    marginTop: 10,
-  },
-  bookButtonText: {
-    color: '#fff',
+
+  // Error and Retry
+  errorText: {
+    color: '#d32f2f',
     fontSize: 16,
-    fontWeight: '600',
-  },
-  modalContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    marginBottom: 16,
+    textAlign: 'center',
   },
   modalContent: {
     width: '80%',
-    backgroundColor: 'white',
+    backgroundColor: '#fff',
     borderRadius: 10,
     padding: 20,
     alignItems: 'center',
-  },
-  header: {
-    backgroundColor: '#fff',
-    padding: 20,
-    marginBottom: 15,
-    borderRadius: 10,
-    shadowColor: '#000',
-    fontWeight: 'bold',
-    color: '#333',
   },
   modalText: {
     fontSize: 16,
@@ -1271,35 +1548,27 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     width: '100%',
   },
-
   cancelButton: {
+    padding: 10,
+    marginRight: 10,
     backgroundColor: '#f0f0f0',
   },
   confirmButton: {
-    backgroundColor: '#007AFF',
-  },
-  modalButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  errorText: {
-    color: '#d32f2f',
-    fontSize: 16,
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  retryButton: {
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
+    backgroundColor: colors.primary,
+    padding: 10,
     borderRadius: 5,
   },
-  retryButtonText: {
+  modalButtonText: {
+    color: colors.secondaryLight,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  confirmButtonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
   },
+
 });
 
 export default RideDetailsScreen;

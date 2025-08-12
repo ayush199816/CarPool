@@ -127,6 +127,7 @@ export const getRideById = async (req: Request, res: Response) => {
     const ride = await Ride.findById(req.params.id)
       .populate('driverId', 'name email phone') // Populate driver info
       .populate('bookingRequests.userId', 'name email') // Populate booking request user info
+      .populate('vehicleId') // Populate vehicle info
       .lean() // Convert to plain JavaScript object
       .exec();
     
@@ -178,6 +179,8 @@ export const createRide = async (req: Request, res: Response) => {
     const {
       startPoint,
       endPoint,
+      rideType = 'in-city', // Default to 'in-city' if not provided
+      vehicleId,
       stoppages = [],
       travelDate,
       availableSeats,
@@ -189,6 +192,16 @@ export const createRide = async (req: Request, res: Response) => {
     if (!driverId) {
       return res.status(401).json({ message: 'User not authenticated' });
     }
+
+    // Validate vehicle exists and belongs to the user
+    const Vehicle = require('../models/Vehicle').default;
+    const vehicle = await Vehicle.findOne({ _id: vehicleId, userId: driverId });
+    
+    if (!vehicle) {
+      return res.status(400).json({ 
+        message: 'Invalid vehicle or you do not have permission to use this vehicle' 
+      });
+    }
     
     // Validate travel date is in the future
     if (new Date(travelDate) < new Date()) {
@@ -199,6 +212,7 @@ export const createRide = async (req: Request, res: Response) => {
     const ride = new Ride({
       startPoint,
       endPoint,
+      rideType, // Include rideType in the ride document
       stoppages: Array.isArray(stoppages) 
         ? stoppages.map((s: any, index: number) => ({
             name: s.name,
@@ -209,6 +223,7 @@ export const createRide = async (req: Request, res: Response) => {
       availableSeats: parseInt(availableSeats),
       pricePerSeat: parseFloat(pricePerSeat),
       driverId, // Use the authenticated user's ID
+      vehicleId, // Associate the vehicle with the ride
     });
     
     console.log('Creating ride with data:', {

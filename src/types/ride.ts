@@ -30,6 +30,21 @@ export interface Coordinates {
   longitude: number;
 }
 
+export type RideType = 'intercity' | 'in-city';
+
+export interface Vehicle {
+  _id: string;
+  make: string;
+  model: string;
+  year: number;
+  color: string;
+  registrationNumber: string;
+  userId: string;
+  verified: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Ride {
   _id?: string;       // MongoDB-style ID (optional)
   id?: string;        // Standard ID (optional)
@@ -37,6 +52,9 @@ export interface Ride {
   endPoint: string;
   startPointCoords?: Coordinates;
   endPointCoords?: Coordinates;
+  rideType: RideType;  // 'intercity' or 'in-city'
+  vehicleId: string;   // ID of the vehicle for this ride
+  vehicle?: Vehicle;   // Populated vehicle information
   stoppages: Stoppage[];
   travelDate: string;
   availableSeats: number;
@@ -44,6 +62,7 @@ export interface Ride {
   driverId: string;
   driver?: User;      // Populated driver information
   bookingRequests?: BookingRequest[]; // Booking requests for this ride
+  status?: 'pending' | 'accepted' | 'rejected'; // Status of the ride booking
   createdAt: string;
   updatedAt: string;
 }
@@ -53,6 +72,7 @@ export interface CreateRideInput {
   endPoint: string;
   startPointCoords?: Coordinates;
   endPointCoords?: Coordinates;
+  rideType: RideType;  // 'intercity' or 'in-city'
   stoppages: Omit<Stoppage, 'order'>[];
   travelDate: string;
   availableSeats: number | string;

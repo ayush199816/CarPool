@@ -1,17 +1,51 @@
 // Theme colors
 export const colors = {
-  primary: '#007AFF',
-  secondary: '#5AC8FA',
-  background: '#FFFFFF',
-  card: '#F5F5F5',
-  text: '#000000',
-  border: '#E0E0E0',
-  notification: '#FF3B30',
-  success: '#34C759',
-  warning: '#FF9500',
+  // Primary Colors
+  primary: '#0B1F3A',        // Navy Blue
+  primaryLight: '#1E3A5F',   // Lighter Navy
+  primaryDark: '#051123',    // Darker Navy
+  
+  // Secondary Colors (CTAs and Highlights)
+  secondary: '#FF5722',      // Flame Orange
+  secondaryLight: '#FF8A50', // Lighter Orange
+  secondaryDark: '#E64A19',  // Darker Orange
+  
+  // Accent Colors
+  accent: '#FFC107',         // Amber Yellow
+  accentLight: '#FFD54F',    // Lighter Amber
+  accentDark: '#FFA000',     // Darker Amber
+  
+  // UI Colors
+  background: '#F5F5F5',     // Soft Gray
+  card: '#FFFFFF',           // White
+  text: '#212121',           // Almost Black
+  textSecondary: '#546E7A',  // Secondary Text
+  border: '#B0BEC5',         // Cool Gray Blue
+  white: '#FFFFFF',
+  black: '#000000',
+  success: '#4CAF50',
+  error: '#F44336',
+  warning: '#FFC107',
+  info: '#2196F3',
+  danger: '#F44336',
+  
+  // Gradient Colors
+  gradientOrangeYellowRed: ['#FF5722', '#FF9800', '#FF5722', '#F44336'], // Orange to Yellow to Red gradient
+  gradientOrangeRed: ['#FF5722', '#F44336'], // Orange to Red gradient
+  gradientYellowOrange: ['#FFC107', '#FF9800'], // Yellow to Orange gradient
+  
+  // Additional UI Colors
+  inputBackground: '#FFFFFF',
+  inputBorder: '#B0BEC5',
+  shadow: 'rgba(11, 31, 58, 0.1)',
+  
+  // Grayscale
   gray: '#8E8E93',
   lightGray: '#F2F2F7',
   darkGray: '#636366',
+  
+  // Status Colors
+  notification: '#FF3B30'
 };
 
 // Font sizes
