@@ -178,6 +178,7 @@ export const createRide = async (req: Request, res: Response) => {
     const {
       startPoint,
       endPoint,
+      rideType = 'in-city', // Default to 'in-city' if not provided
       stoppages = [],
       travelDate,
       availableSeats,
@@ -199,6 +200,7 @@ export const createRide = async (req: Request, res: Response) => {
     const ride = new Ride({
       startPoint,
       endPoint,
+      rideType, // Include rideType in the ride document
       stoppages: Array.isArray(stoppages) 
         ? stoppages.map((s: any, index: number) => ({
             name: s.name,

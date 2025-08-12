@@ -38,7 +38,7 @@ interface Booking {
 }
 
 type UserRidesScreenNavigationProp = CompositeNavigationProp<
-  BottomTabNavigationProp<MainTabParamList, 'ProfileTab'>,
+  BottomTabNavigationProp<MainTabParamList, 'Profile'>,
   StackNavigationProp<AppStackParamList>
 >;
 
@@ -60,6 +60,28 @@ const RideItem = ({ ride, type, onPress }: RideItemProps) => {
     console.error('Error formatting date:', error);
   }
   
+  // Get status text and color based on booking status
+  const getStatusInfo = () => {
+    if (type === 'created') return { text: 'Your Ride', color: colors.primary };
+    
+    // Use the status from the ride object with type safety
+    const status = ride.status?.toLowerCase() as 'pending' | 'accepted' | 'rejected' | undefined;
+    
+    switch (status) {
+      case 'accepted':
+        return { text: 'Confirmed', color: '#4CAF50' };
+      case 'rejected':
+        return { text: 'Rejected', color: '#F44336' };
+      case 'pending':
+        return { text: 'Pending', color: '#FFC107' };
+      default:
+        // Default to pending if status is not set
+        return { text: 'Pending', color: '#FFC107' };
+    }
+  };
+  
+  const statusInfo = getStatusInfo();
+  
   return (
     <TouchableOpacity 
       style={styles.rideItem} 
@@ -70,9 +92,9 @@ const RideItem = ({ ride, type, onPress }: RideItemProps) => {
         <Text style={styles.rideRoute}>
           {ride.startPoint} → {ride.endPoint}
         </Text>
-        <View style={styles.rideBadge}>
+        <View style={[styles.rideBadge, { backgroundColor: statusInfo.color }]}>
           <Text style={styles.rideBadgeText}>
-            {type === 'created' ? 'Your Ride' : 'Booked'}
+            {statusInfo.text}
           </Text>
         </View>
       </View>
@@ -221,15 +243,17 @@ const UserRidesScreen = () => {
     }
     
     // Create a new object that matches the Ride type
-    const mappedRide: Omit<Ride, 'driverName'> & { driverName: string } = {
+    const mappedRide: Omit<Ride, 'driverName'> & { driverName: string; status: string } = {
       _id: rideAny._id,
       id: rideAny._id,
       startPoint: rideAny.from,
       endPoint: rideAny.to,
       travelDate: rideAny.date,
+      rideType: rideAny.rideType || 'intercity', // Default to 'intercity' if not provided
       driverName, // This will be used for display
       driverId,
       availableSeats: booking.seats,
+      status: booking.status, // Include the status from the booking
       pricePerSeat,
       stoppages: [],
       bookingRequests: [],

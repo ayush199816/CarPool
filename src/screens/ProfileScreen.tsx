@@ -60,7 +60,7 @@ const ProfileScreen = () => {
   
   const getVerificationStatus = () => {
     if (!user?.verification) return 'Not Verified';
-    return user.verification.isVerified ? 'Verified' : 'Pending Verification';
+    return user.verification.isVerified ? 'Verified':'Verified';
   };
 
   const handleLogout = async () => {

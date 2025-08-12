@@ -18,7 +18,6 @@ import { useRide } from '../context/RideContext';
 import { SCREENS, AppStackParamList, MainTabParamList } from '../navigation/types';
 import { Ride } from '../types/ride';
 import { format, parseISO, isSameDay } from 'date-fns';
-import { RideType } from '../types/ride';
 import debounce from 'lodash.debounce';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -160,44 +159,37 @@ const RideListScreen = () => {
 
   const RideItem = React.memo(({ item, onPress }: { item: Ride, onPress: (ride: Ride) => void }) => {
     const [showStoppages, setShowStoppages] = useState(false);
-    const rideTypeColor = item.rideType === 'intercity' ? colors.primary : colors.secondary;
     
     return (
       <View style={styles.rideCard}>
         <TouchableOpacity onPress={() => onPress(item)}>
           <View style={styles.rideHeader}>
-            <View style={styles.rideInfo}>
-              <View style={styles.rideTypeBadge}>
-                <Text style={[styles.rideTypeText, { color: rideTypeColor }]}>
-                  {item.rideType === 'intercity' ? 'Intercity' : 'In-City'}
+            <Text style={styles.rideRoute}>
+              {item.startPoint} → {item.endPoint}
+            </Text>
+            <Text style={styles.ridePrice}>₹{item.pricePerSeat} per seat</Text>
+          </View>
+          
+          <Text style={styles.rideDate}>
+            {format(new Date(item.travelDate), 'EEE, MMM d, yyyy • h:mm a')}
+          </Text>
+          
+          <View style={styles.rideFooter}>
+            <Text style={styles.rideSeats}>
+              {item.availableSeats} seat{item.availableSeats !== 1 ? 's' : ''} available
+            </Text>
+            {item.stoppages && item.stoppages.length > 0 && (
+              <TouchableOpacity 
+                onPress={(e) => {
+                  e.stopPropagation();
+                  setShowStoppages(!showStoppages);
+                }}
+              >
+                <Text style={styles.rideStoppages}>
+                  {item.stoppages.length} stop{item.stoppages.length !== 1 ? 's' : ''} along the way {showStoppages ? '▲' : '▼'}
                 </Text>
-              </View>
-              <Text style={styles.rideRoute}>
-                {item.startPoint} → {item.endPoint}
-              </Text>
-              <Text style={styles.rideDate}>
-                {format(new Date(item.travelDate), 'EEE, MMM d, yyyy • h:mm a')}
-              </Text>
-              
-              <View style={styles.rideFooter}>
-                <Text style={styles.ridePrice}>₹{item.pricePerSeat} per seat</Text>
-                <Text style={styles.rideSeats}>
-                  {item.availableSeats} seat{item.availableSeats !== 1 ? 's' : ''} available
-                </Text>
-                {item.stoppages && item.stoppages.length > 0 && (
-                  <TouchableOpacity 
-                    onPress={(e) => {
-                      e.stopPropagation();
-                      setShowStoppages(!showStoppages);
-                    }}
-                  >
-                    <Text style={styles.rideStoppages}>
-                      {item.stoppages.length} stop{item.stoppages.length !== 1 ? 's' : ''} along the way {showStoppages ? '▲' : '▼'}
-                    </Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-            </View>
+              </TouchableOpacity>
+            )}
           </View>
         </TouchableOpacity>
         
@@ -545,23 +537,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 8,
-  },
-  rideInfo: {
-    flex: 1,
-  },
-  rideTypeBadge: {
-    alignSelf: 'flex-start',
-    backgroundColor: 'rgba(0, 0, 0, 0.05)',
-    borderRadius: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    marginBottom: 8,
-  },
-  rideTypeText: {
-    fontSize: 12,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
   },
   rideRoute: {
     fontSize: 18,

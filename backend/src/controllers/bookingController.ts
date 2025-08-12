@@ -189,7 +189,7 @@ export const getUserBookings = async (req: Request, res: Response) => {
     const rides = await Ride.find({
       'bookingRequests.userId': new Types.ObjectId(userId),
     })
-      .select('startPoint endPoint travelDate driverId bookingRequests')
+      .select('startPoint endPoint travelDate driverId bookingRequests pricePerSeat')
       .populate('driverId', 'name')
       .populate('bookingRequests.userId', 'name email');
 
@@ -215,6 +215,7 @@ export const getUserBookings = async (req: Request, res: Response) => {
           endPoint: ride.endPoint,
           travelDate: ride.travelDate,
           driver: ride.driverId,
+          pricePerSeat: ride.pricePerSeat,
           status: request.status,
           seats: request.seats,
           message: request.message,

@@ -4,19 +4,36 @@ import { useAuth } from '../context/AuthContext';
 import AuthStack from './AuthStack';
 import AppStack from './AppStack';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import SplashScreen from '../screens/SplashScreen';
 
 const AppNavigator = () => {
   const { user, isLoading } = useAuth();
   const [appIsReady, setAppIsReady] = useState(false);
+  const [showSplash, setShowSplash] = useState(true);
 
-  // Add a small delay to ensure everything is loaded
+  // Handle splash screen timeout
   useEffect(() => {
-    const timer = setTimeout(() => {
+    const splashTimer = setTimeout(() => {
+      setShowSplash(false);
+    }, 3000); // Show splash for 3 seconds
+
+    // Add a small delay to ensure everything is loaded
+    const appReadyTimer = setTimeout(() => {
       setAppIsReady(true);
     }, 1000);
     
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(splashTimer);
+      clearTimeout(appReadyTimer);
+    };
   }, []);
+
+  // Show splash screen first
+  if (showSplash) {
+    return (
+      <SplashScreen onAnimationComplete={() => setShowSplash(false)} />
+    );
+  }
 
   // Show loading indicator only if we're still loading the auth state
   // and the app isn't ready yet

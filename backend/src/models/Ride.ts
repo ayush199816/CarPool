@@ -18,6 +18,7 @@ export interface IBookingRequest {
 export interface IRide extends Document {
   startPoint: string;
   endPoint: string;
+  rideType: 'in-city' | 'intercity';
   stoppages: IStoppage[];
   travelDate: Date;
   availableSeats: number;
@@ -74,6 +75,15 @@ const rideSchema = new Schema<IRide>(
       type: String,
       required: [true, 'End point is required'],
       trim: true,
+    },
+    rideType: {
+      type: String,
+      required: [true, 'Ride type is required'],
+      enum: {
+        values: ['in-city', 'intercity'],
+        message: 'Ride type must be either in-city or intercity',
+      },
+      default: 'in-city',
     },
     stoppages: [stoppageSchema],
     travelDate: {

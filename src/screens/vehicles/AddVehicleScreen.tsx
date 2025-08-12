@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, Alert, ActivityIndicator } from 'react-native';
-import { Button, TextInput, Text, useTheme, HelperText } from 'react-native-paper';
+import { Button, TextInput, Text, useTheme, HelperText, SegmentedButtons } from 'react-native-paper';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
 import { AppStackParamList } from '../../navigation/types';
@@ -32,7 +32,7 @@ const AddVehicleScreen: React.FC<Props> = ({ navigation }) => {
     insuranceProvider: '',
     insuranceNumber: '',
     insuranceExpiry: '',
-    vehicleType: 'car',
+    vehicleType: 'car', // 'car', 'bike', or 'scooty'
   });
 
   const handleChange = (field: string, value: string) => {
@@ -46,6 +46,7 @@ const AddVehicleScreen: React.FC<Props> = ({ navigation }) => {
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
     
+    if (!formData.vehicleType) newErrors.vehicleType = 'Vehicle type is required';
     if (!formData.make.trim()) newErrors.make = 'Make is required';
     if (!formData.modelName.trim()) newErrors.modelName = 'Model is required';
     if (!formData.year) newErrors.year = 'Year is required';
@@ -110,6 +111,33 @@ const AddVehicleScreen: React.FC<Props> = ({ navigation }) => {
   return (
     <ScrollView style={styles.container}>
       <Text style={styles.title}>Add New Vehicle</Text>
+      
+      <Text style={styles.sectionTitle}>Vehicle Type *</Text>
+      <SegmentedButtons
+        value={formData.vehicleType}
+        onValueChange={(value) => handleChange('vehicleType', value)}
+        buttons={[
+          {
+            value: 'car',
+            label: 'Car',
+            icon: 'car',
+          },
+          {
+            value: 'bike',
+            label: 'Bike',
+            icon: 'motorbike',
+          },
+          {
+            value: 'scooty',
+            label: 'Scooty',
+            icon: 'scooter',
+          },
+        ]}
+        style={styles.segmentedButton}
+      />
+      <HelperText type="error" visible={!!errors.vehicleType}>
+        {errors.vehicleType}
+      </HelperText>
       
       <TextInput
         label="Make *"
@@ -245,6 +273,16 @@ const styles = StyleSheet.create({
   input: {
     marginBottom: 8,
     backgroundColor: '#fff',
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '500',
+    marginTop: 8,
+    marginBottom: 8,
+    color: 'rgba(0, 0, 0, 0.6)',
+  },
+  segmentedButton: {
+    marginBottom: 16,
   },
   button: {
     marginTop: 16,
