@@ -32,6 +32,19 @@ export interface Coordinates {
 
 export type RideType = 'intercity' | 'in-city';
 
+export interface Vehicle {
+  _id: string;
+  make: string;
+  model: string;
+  year: number;
+  color: string;
+  registrationNumber: string;
+  userId: string;
+  verified: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Ride {
   _id?: string;       // MongoDB-style ID (optional)
   id?: string;        // Standard ID (optional)
@@ -40,6 +53,8 @@ export interface Ride {
   startPointCoords?: Coordinates;
   endPointCoords?: Coordinates;
   rideType: RideType;  // 'intercity' or 'in-city'
+  vehicleId: string;   // ID of the vehicle for this ride
+  vehicle?: Vehicle;   // Populated vehicle information
   stoppages: Stoppage[];
   travelDate: string;
   availableSeats: number;

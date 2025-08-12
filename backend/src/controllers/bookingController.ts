@@ -25,8 +25,9 @@ export const createBookingRequest = async (req: Request, res: Response) => {
     // Check if seats are available
     if (ride.availableSeats < seats) {
       return res.status(400).json({ 
-        message: 'Not enough seats available',
-        availableSeats: ride.availableSeats 
+        message: `Only ${ride.availableSeats} seat${ride.availableSeats !== 1 ? 's' : ''} available`,
+        availableSeats: ride.availableSeats,
+        code: 'INSUFFICIENT_SEATS'
       });
     }
 
@@ -102,24 +103,21 @@ export const updateBookingStatus = async (req: Request, res: Response) => {
     
     // If request is being accepted, update available seats
     if (status === 'accepted' && request.status !== 'accepted') {
+      // Check if there are enough seats available
       if (ride.availableSeats < request.seats) {
-        if (ride.availableSeats === 0) {
-          return res.status(400).json({ 
-            message: 'Seats Full',
-            code: 'SEATS_FULL',
-            availableSeats: ride.availableSeats,
-            requestedSeats: request.seats
-          });
-        } else {
-          return res.status(400).json({ 
-            message: `Only ${ride.availableSeats} seat${ride.availableSeats > 1 ? 's' : ''} available`,
-            code: 'INSUFFICIENT_SEATS',
-            availableSeats: ride.availableSeats,
-            requestedSeats: request.seats
-          });
-        }
+        return res.status(400).json({ 
+          message: `Only ${ride.availableSeats} seat${ride.availableSeats !== 1 ? 's' : ''} available`,
+          code: 'INSUFFICIENT_SEATS',
+          availableSeats: ride.availableSeats,
+          requestedSeats: request.seats
+        });
       }
-      ride.availableSeats -= request.seats;
+      
+      // Calculate new available seats (can be 0)
+      const newAvailableSeats = ride.availableSeats - request.seats;
+      
+      // Update available seats (can be 0, which is valid)
+      ride.availableSeats = Math.max(0, newAvailableSeats);
     }
     
     // If request was previously accepted and status is being changed, return the seats

@@ -140,7 +140,7 @@ const AddVehicleScreen: React.FC<Props> = ({ navigation }) => {
       </HelperText>
       
       <TextInput
-        label="Make *"
+        label="Company *"
         value={formData.make}
         onChangeText={(text) => handleChange('make', text)}
         style={styles.input}

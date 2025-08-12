@@ -18,6 +18,8 @@ const AddRideScreen = () => {
   const { user, getVerifiedVehicles } = useAuth();
   const [hasVerifiedVehicle, setHasVerifiedVehicle] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [vehicles, setVehicles] = useState<any[]>([]);
+  const [selectedVehicleId, setSelectedVehicleId] = useState<string>('');
   
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
@@ -110,6 +112,12 @@ const AddRideScreen = () => {
         console.log('Has verified vehicles:', hasVehicles);
         
         setHasVerifiedVehicle(hasVehicles);
+        setVehicles(verifiedVehicles);
+        
+        // Select the first vehicle by default if available
+        if (verifiedVehicles.length > 0) {
+          setSelectedVehicleId(verifiedVehicles[0]._id);
+        }
       } catch (error) {
         console.error('Error checking verified vehicles:', error);
         setHasVerifiedVehicle(false);
@@ -242,6 +250,11 @@ const AddRideScreen = () => {
       return;
     }
 
+    if (!selectedVehicleId) {
+      Alert.alert('Error', 'Please select a vehicle');
+      return;
+    }
+
     if (!formData.startPoint || !formData.endPoint || !formData.travelDate) {
       Alert.alert('Error', 'Please fill in all required fields');
       return;
@@ -279,7 +292,8 @@ const AddRideScreen = () => {
       const rideData = {
         startPoint: formData.startPoint,
         endPoint: formData.endPoint,
-        rideType: formData.rideType, // Explicitly include rideType
+        rideType: formData.rideType,
+        vehicleId: selectedVehicleId,
         travelDate: new Date(formData.travelDate).toISOString(),
         availableSeats: typeof formData.availableSeats === 'number' 
           ? formData.availableSeats 
@@ -467,6 +481,29 @@ const AddRideScreen = () => {
               },
             }}
           />
+        </View>
+      </View>
+
+      <View style={styles.formGroup}>
+        <Text style={styles.label}>Select Vehicle*</Text>
+        <View style={styles.dropdownContainer}>
+          {vehicles.map((vehicle) => (
+            <TouchableOpacity
+              key={vehicle._id}
+              style={[
+                styles.vehicleOption,
+                selectedVehicleId === vehicle._id && styles.vehicleOptionSelected
+              ]}
+              onPress={() => setSelectedVehicleId(vehicle._id)}
+            >
+              <Text style={styles.vehicleText}>
+                {vehicle.make} {vehicle.model} ({vehicle.registrationNumber})
+              </Text>
+              {selectedVehicleId === vehicle._id && (
+                <Text style={styles.vehicleSelectedIcon}>✓</Text>
+              )}
+            </TouchableOpacity>
+          ))}
         </View>
       </View>
 
@@ -670,6 +707,7 @@ const styles = StyleSheet.create({
   // Form groups
   formGroup: {
     marginBottom: 0,
+    
     backgroundColor: colors.primary,
     borderRadius: 12,
     padding: 0,
@@ -683,8 +721,8 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 15,
     fontWeight: '600',
-    marginBottom: 12,
-    marginLeft: 4,
+    marginTop: 0,
+    marginLeft: 10,
     letterSpacing: 0.2,
     color: colors.secondaryLight,
   },
@@ -698,6 +736,8 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     fontSize: 15,
     height: 50,
+    marginRight: 10,
+    marginLeft: 10,
     color: colors.secondaryLight,
   },
   // Radio button group
@@ -734,14 +774,42 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   radioOptionSelected: {
-    borderColor: colors.primary,
-    backgroundColor: 'rgba(11, 31, 58, 0.05)',
+    backgroundColor: '#E3F2FD',
+    borderColor: '#007AFF',
   },
   radioText: {
     marginLeft: 8,
     fontSize: 15,
     fontWeight: '500',
     color: colors.text,
+  },
+  // Vehicle selection styles
+  dropdownContainer: {
+    marginBottom: 16,
+  },
+  vehicleOption: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 12,
+    borderWidth: 1,
+    borderColor: colors.inputBorder,
+    borderRadius: 8,
+    marginBottom: 8,
+    backgroundColor: colors.secondaryLight,
+  },
+  vehicleOptionSelected: {
+    borderColor: colors.secondary,
+    backgroundColor:'White',
+  },
+  vehicleText: {
+    fontSize: 15,
+    color: colors.secondaryLight,
+  },
+  vehicleSelectedIcon: {
+    color: colors.secondaryLight,
+    fontSize: 18,
+    fontWeight: 'bold',
   },
   // Submit button
   submitButton: {

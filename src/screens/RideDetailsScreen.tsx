@@ -672,6 +672,38 @@ const RideDetailsScreen = () => {
                 </Text>
               </View>
             )}
+            
+            {/* Vehicle Information - Show if vehicle data is available and user has confirmed booking or is the ride owner */}
+            {ride.vehicleId && (hasConfirmedBooking || isOwner) && (
+              <View style={styles.vehicleInfoContainer}>
+                <View style={styles.sectionHeader}>
+                  <Ionicons name="car-sport-outline" size={20} color="#4A6FA5" />
+                  <Text style={styles.sectionTitle}>Vehicle Information</Text>
+                </View>
+                
+                {typeof ride.vehicleId === 'object' ? (
+                  <View style={styles.vehicleDetails}>
+                    <Text style={styles.vehicleName}>
+                      {ride.vehicleId.make} {ride.vehicleId.modelName} ({ride.vehicleId.year})
+                    </Text>
+                    <View style={styles.vehicleDetailRow}>
+                      <Ionicons name="pricetag" size={16} color="#4A6FA5" style={styles.detailIcon} />
+                      <Text style={styles.vehicleDetailText}>
+                        {ride.vehicleId.color} • {ride.vehicleId.registrationNumber}
+                      </Text>
+                    </View>
+                    {ride.vehicleId.verificationStatus === 'verified' && (
+                      <View style={styles.verifiedBadge}>
+                        <Ionicons name="checkmark-circle" size={14} color="#4CAF50" />
+                        <Text style={styles.verifiedBadgeText}>Verified</Text>
+                      </View>
+                    )}
+                  </View>
+                ) : (
+                  <Text style={styles.vehicleLoadingText}>Loading vehicle details...</Text>
+                )}
+              </View>
+            )}
           </View>
         </View>
 
@@ -816,6 +848,79 @@ const RideDetailsScreen = () => {
 };
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#f8f9fa',
+  },
+  section: {
+    marginBottom: 20,
+  },
+  // Driver Section
+  driverSection: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 20,
+    margin: 15,
+    marginTop: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  driverHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  vehicleInfoContainer: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+  },
+  vehicleDetails: {
+    marginLeft: 8,
+    marginTop: 8,
+  },
+  vehicleName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 4,
+  },
+  vehicleDetailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  vehicleDetailText: {
+    fontSize: 14,
+    color: '#666',
+    marginLeft: 6,
+  },
+  vehicleLoadingText: {
+    fontStyle: 'italic',
+    color: '#999',
+    fontSize: 14,
+    marginLeft: 8,
+  },
+  verifiedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E8F5E9',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+    marginTop: 6,
+  },
+  verifiedBadgeText: {
+    color: '#2E7D32',
+    fontSize: 12,
+    fontWeight: '500',
+    marginLeft: 4,
+  },
   mapContainer: {
     marginHorizontal: 16,
     marginTop: 16,
@@ -823,10 +928,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   // Layout
-  container: {
-    flex: 1,
-    backgroundColor: '#f8f9fa',
-  },
   scrollContent: {
     paddingBottom: 30,
   },
@@ -1313,27 +1414,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   // Section
-  section: {
-    marginBottom: 20,
-  },
-  // Driver Section
-  driverSection: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 20,
-    margin: 15,
-    marginTop: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 3,
-  },
-  driverHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 15,
-  },
   driverInfo: {
     flexDirection: 'row',
     alignItems: 'center',
