@@ -40,8 +40,8 @@ expo-mongoose-ts/
 
 3. Create a `.env` file in the project root with your MongoDB URI:
    ```
-   MONGODB_URI=mongodb://localhost:27017/expo-mongoose-ts
-   PORT=5000
+   MONGODB_URI=mongodb+srv://ayush199816_db_user:QBWUzI4DNPYKfbau@cluster0.4nnnwao.mongodb.net/carpool
+   PORT=5001
    ```
 
 4. Start the development server:
@@ -74,11 +74,30 @@ expo-mongoose-ts/
 - `npm start`: Start the production server
 
 ### Frontend
-- `npm start`: Start the Expo development server
+- `npm expo start`: Start the Expo development server
 - `npm test`: Run tests
 - `npm run web`: Run the web version
 
 ## Connecting to MongoDB
+
+## Network Configuration
+
+### Backend Configuration
+The backend server runs on `http://192.168.31.175:5001` by default. You can access the API at:
+- Local: `http://localhost:5001`
+- Network: `http://192.168.31.175:5001`
+
+### Frontend Configuration
+Update the API URL in [src/Config.ts](cci:7://file:///d:/Projects/CarPool/src/Config.ts:0:0-0:0) to match your network configuration:
+```typescript
+// For development on physical devices
+export const API_URL = '[http://192.168.31.175](http://192.168.31.175):5001/api';
+
+// For Android emulator
+// export const API_URL = '[http://10.0.2.2](http://10.0.2.2):5001/api';
+
+// For iOS simulator
+// export const API_URL = 'http://localhost:5001/api';
 
 The application is configured to connect to MongoDB using Mongoose. Update the `MONGODB_URI` in the `.env` file to point to your MongoDB instance.
 

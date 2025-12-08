@@ -1,7 +1,11 @@
 import mongoose from 'mongoose';
 
-// Use a default connection string if not provided in environment
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/expo-mongoose-ts';
+// Use the MongoDB URI from environment variables
+if (!process.env.MONGODB_URI) {
+  console.error('❌ MONGODB_URI is not defined in environment variables');
+  process.exit(1);
+}
+const MONGODB_URI = process.env.MONGODB_URI;
 
 const connectDB = async (): Promise<void> => {
   try {
@@ -11,12 +15,12 @@ const connectDB = async (): Promise<void> => {
     const redactedUri = MONGODB_URI.replace(/\/\/([^:]+):([^@]+)@/, '//***:***@');
     console.log(`🔗 Connection string: ${redactedUri}`);
     
-    const options = {
-      serverSelectionTimeoutMS: 5000,
+    const options: mongoose.ConnectOptions = {
+      serverSelectionTimeoutMS: 10000, // Increased timeout to 10 seconds
       socketTimeoutMS: 45000,
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    };
+      connectTimeoutMS: 10000, // Added connection timeout
+      retryWrites: true
+    } as mongoose.ConnectOptions;
     
     const conn = await mongoose.connect(MONGODB_URI, options);
     

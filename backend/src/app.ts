@@ -26,7 +26,17 @@ type NetworkInterfaces = {
 };
 
 // Load environment variables from .env file in the backend directory
-dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+const envPath = path.resolve(__dirname, '../.env');
+console.log('Loading environment variables from:', envPath);
+const result = dotenv.config({ path: envPath });
+
+if (result.error) {
+  console.error('❌ Error loading .env file:', result.error);
+}
+
+// Verify environment variables
+console.log('MONGODB_URI:', process.env.MONGODB_URI ? '*** (set)' : '❌ not set');
+console.log('PORT:', process.env.PORT || '5000 (default)');
 
 // Fallback to default values if .env loading fails
 if (!process.env.MONGODB_URI) {
@@ -75,28 +85,42 @@ const requestLogger = (req: Request, res: Response, next: NextFunction) => {
 };
 app.use(requestLogger);
 
-// Health check endpoint
+// Health check endpoint (public)
 const healthCheck = (req: Request, res: Response) => {
-  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+  res.status(200).json({ 
+    status: 'ok', 
+    timestamp: new Date().toISOString(),
+    service: 'CarPool API',
+    version: '1.0.0',
+    environment: process.env.NODE_ENV || 'development'
+  });
 };
 app.get('/health', healthCheck);
 
 // Serve uploaded files statically
 app.use('/uploads', express.static(path.join(__dirname, '..', '..', 'uploads')));
 
-// API Routes
+// Public health check endpoint
+const apiHealthCheck = (req: Request, res: Response) => {
+  res.status(200).json({ 
+    status: 'ok', 
+    timestamp: new Date().toISOString(),
+    service: 'CarPool API',
+    version: '1.0.0',
+    environment: process.env.NODE_ENV || 'development',
+    database: 'connected',
+    uptime: process.uptime()
+  });
+};
+app.get('/api/health', apiHealthCheck);
+
+// API Routes (these are protected by auth middleware)
 app.use('/api/rides', rideRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api', bookingRoutes);
-app.use('/api/verifications', verificationRoutes); // Mount verification routes at /api/verifications
+app.use('/api/verifications', verificationRoutes);
 app.use('/api/vehicles', vehicleRoutes);
 app.use('/api/admin', adminRoutes);
-
-// API Health check endpoint
-const apiHealthCheck = (req: Request, res: Response) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
-};
-app.get('/api/health', apiHealthCheck);
 
 // Root endpoint
 const rootHandler = (req: Request, res: Response) => {

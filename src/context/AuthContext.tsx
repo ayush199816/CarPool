@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Alert } from 'react-native';
+import { API_URL } from '../Config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { authService } from '../services/authService';
 import { User, AuthContextType, VerificationStatus } from '../types/user';
@@ -151,7 +152,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (!token) return [];
     
     try {
-      const response = await fetch(`${process.env.API_URL || 'http://192.168.31.174:5000/api'}/vehicles`, {
+      const response = await fetch(`${API_URL}/vehicles`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',

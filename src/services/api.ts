@@ -16,18 +16,8 @@ const debugApiCall = (config: AxiosRequestConfig) => {
   });
 };
 
-// API Configuration
-let API_URL: string;
-
-if (__DEV__) {
-  // For Android emulator, use 10.0.2.2 to access localhost on the host machine
-  // For physical devices, use your computer's local IP address
-  const isAndroidEmulator = Platform.OS === 'android' && !__DEV__;
-  const host = isAndroidEmulator ? '10.0.2.2' : '192.168.31.174';
-  API_URL = `http://${host}:5000/api`;
-} else {
-  API_URL = 'https://your-production-api.com/api';
-}
+// Import API configuration
+import { API_URL } from '../Config';
 
 console.log('Using API URL:', API_URL);
 console.log('Platform:', Platform.OS);
