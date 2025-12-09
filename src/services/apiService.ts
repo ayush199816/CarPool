@@ -1,6 +1,11 @@
 import { API_URL } from '../Config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+let currentApiUrl = API_URL;
+export const setApiBaseUrl = (newUrl: string) => {
+  currentApiUrl = newUrl;
+};
+
 interface ApiResponse<T = any> {
   success: boolean;
   data?: T;
@@ -58,7 +63,7 @@ export const uploadFile = async (formData: FormData, type: UploadType = 'user'):
       console.log(`${key}:`, value);
     }
     
-    const response = await fetch(`${API_URL}/upload`, {
+    const response = await fetch(`${currentApiUrl}/upload`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${await getAuthToken()}`,
