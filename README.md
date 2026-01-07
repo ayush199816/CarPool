@@ -74,7 +74,7 @@ expo-mongoose-ts/
 - `npm start`: Start the production server
 
 ### Frontend
-- `npm expo start`: Start the Expo development server
+- `npx expo start`: Start the Expo development server
 - `npm test`: Run tests
 - `npm run web`: Run the web version
 
