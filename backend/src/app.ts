@@ -25,14 +25,8 @@ type NetworkInterfaces = {
   [key: string]: NetworkInterfaceInfo[] | undefined;
 };
 
-// Load environment variables from .env file in the backend directory
-const envPath = path.resolve(__dirname, '../../.env');
-console.log('Loading environment variables from:', envPath);
-const result = dotenv.config({ path: envPath });
-
-if (result.error) {
-  console.error('❌ Error loading .env file:', result.error);
-}
+// Load environment variables
+dotenv.config();
 
 // Verify environment variables
 console.log('MONGODB_URI:', process.env.MONGODB_URI ? '*** (set)' : '❌ not set');
