@@ -14,13 +14,13 @@
       },
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://carpool-1-55hw.onrender.com"
+        "EXPO_PUBLIC_API_URL": "https://carpool-1-55hw.onrender.com/api"
       }
     },
     "production": {
       "autoIncrement": true,
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://carpool-1-55hw.onrender.com"
+        "EXPO_PUBLIC_API_URL": "https://carpool-1-55hw.onrender.com/api"
       }
     }
   },
