@@ -5,6 +5,7 @@ import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../constants/theme';
 import { Ride } from '../types/ride';
+import { featureFlags } from '../constants/theme';
 
 // Define Coordinates type since it's not directly exported from react-native-maps
 interface Coordinates {
@@ -209,43 +210,50 @@ const RideMap: React.FC<RideMapProps> = ({
 
   return (
     <View style={[styles.container, { height, width }, style]}>
-      <MapView
-        style={styles.map}
-        initialRegion={getMapRegion()}
-        region={getMapRegion()}
-        mapType="standard"
-      >
-        {origin && (
-          <Marker
-            coordinate={origin}
-            title="Pickup Location"
-            description={ride.startPoint}
-          >
-            <View style={styles.marker}>
-              <Ionicons name="location" size={24} color={colors.primary} />
-            </View>
-          </Marker>
-        )}
-        {destination && (
-          <Marker
-            coordinate={destination}
-            title="Drop-off Location"
-            description={ride.endPoint}
-          >
-            <View style={[styles.marker, { backgroundColor: colors.secondary }]}>
-              <Ionicons name="flag" size={20} color={colors.white} />
-            </View>
-          </Marker>
-        )}
-        {origin && destination && (
-          <Polyline
-            coordinates={[origin, destination]}
-            strokeColor={colors.primary}
-            strokeWidth={3}
-            lineDashPattern={[5, 5]} // Optional: makes it a dashed line
-          />
-        )}
-      </MapView>
+      {featureFlags.showMaps ? (
+        <MapView
+          style={styles.map}
+          initialRegion={getMapRegion()}
+          region={getMapRegion()}
+          mapType="standard"
+        >
+          {origin && (
+            <Marker
+              coordinate={origin}
+              title="Pickup Location"
+              description={ride.startPoint}
+            >
+              <View style={styles.marker}>
+                <Ionicons name="location" size={24} color={colors.primary} />
+              </View>
+            </Marker>
+          )}
+          {destination && (
+            <Marker
+              coordinate={destination}
+              title="Drop-off Location"
+              description={ride.endPoint}
+            >
+              <View style={[styles.marker, { backgroundColor: colors.secondary }]}>
+                <Ionicons name="flag" size={20} color={colors.white} />
+              </View>
+            </Marker>
+          )}
+          {origin && destination && (
+            <Polyline
+              coordinates={[origin, destination]}
+              strokeColor={colors.primary}
+              strokeWidth={3}
+              lineDashPattern={[5, 5]} // Optional: makes it a dashed line
+            />
+          )}
+        </MapView>
+      ) : (
+        <View style={styles.mapPlaceholder}>
+          <Ionicons name="map-outline" size={32} color={colors.textSecondary} />
+          <Text style={styles.placeholderText}>Maps are temporarily disabled</Text>
+        </View>
+      )}
       {error && (
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>{error}</Text>
@@ -269,6 +277,12 @@ const styles = StyleSheet.create({
   },
   map: {
     ...StyleSheet.absoluteFillObject,
+  },
+  mapPlaceholder: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.background,
   },
   placeholder: {
     flex: 1,

@@ -48,6 +48,11 @@ export const colors = {
   notification: '#FF3B30'
 };
 
+// Feature flags
+export const featureFlags = {
+  showMaps: false,  // Temporarily disable maps
+};
+
 // Font sizes
 export const fontSizes = {
   small: 12,

@@ -4,6 +4,7 @@ import MapView, { Marker, Region } from 'react-native-maps';
 import { Button } from 'react-native-paper';
 import * as Location from 'expo-location';
 import debounce from 'lodash.debounce';
+import { featureFlags } from '../constants/theme';
 
 interface MapLocationPickerProps {
   onLocationSelect: (location: { latitude: number; longitude: number; address: string }) => void;
@@ -212,26 +213,32 @@ const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
       </View>
 
       <View style={styles.mapContainer}>
-        <MapView
-          style={styles.map}
-          region={region}
-          onPress={handleMapPress}
-          showsUserLocation={true}
-          showsMyLocationButton={false}
-          zoomEnabled={true}
-          zoomControlEnabled={true}
-        >
-          {region.latitude !== DEFAULT_REGION.latitude && (
-            <Marker
-              coordinate={{
-                latitude: region.latitude,
-                longitude: region.longitude,
-              }}
-              title="Selected Location"
-              description={address}
-            />
-          )}
-        </MapView>
+        {featureFlags.showMaps ? (
+          <MapView
+            style={styles.map}
+            region={region}
+            onPress={handleMapPress}
+            showsUserLocation={true}
+            showsMyLocationButton={false}
+            zoomEnabled={true}
+            zoomControlEnabled={true}
+          >
+            {region.latitude !== DEFAULT_REGION.latitude && (
+              <Marker
+                coordinate={{
+                  latitude: region.latitude,
+                  longitude: region.longitude,
+                }}
+                title="Selected Location"
+                description={address}
+              />
+            )}
+          </MapView>
+        ) : (
+          <View style={styles.mapPlaceholder}>
+            <Text style={styles.placeholderText}>Maps are temporarily disabled</Text>
+          </View>
+        )}
       </View>
 
       <Button
@@ -299,6 +306,16 @@ const styles = StyleSheet.create({
   },
   map: {
     ...StyleSheet.absoluteFillObject,
+  },
+  mapPlaceholder: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f0f0f0',
+  },
+  placeholderText: {
+    fontSize: 16,
+    color: '#666',
   },
   confirmButton: {
     marginTop: 8,

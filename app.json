@@ -29,8 +29,7 @@
     "extra": {
       "eas": {
         "projectId": "00a1e106-d792-471c-a7e2-fd798823b27e"
-      },
-      "apiUrl": "https://carpool-1-55hw.onrender.com/api"
+      }
     }
   }
 }
