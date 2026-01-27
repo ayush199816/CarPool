@@ -30,7 +30,7 @@ const RideDetailsScreen = () => {
   const route = useRoute<RideDetailsScreenRouteProp>();
   const { rideId } = route.params;
   
-  const { getRideById, respondToBookingRequest, createBookingRequest } = useRide();
+  const { getRideById, respondToBookingRequest, createBookingRequest, deleteRide } = useRide();
   const { user } = useAuth();
   const [ride, setRide] = useState<Ride | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -169,6 +169,12 @@ const RideDetailsScreen = () => {
   const handleDelete = async () => {
     if (!ride) return;
 
+    const idToDelete = (ride.id || (ride as any)._id || rideId) as string | undefined;
+    if (!idToDelete) {
+      Alert.alert('Error', 'Invalid ride ID. Please try again.');
+      return;
+    }
+
     Alert.alert(
       'Delete Ride',
       'Are you sure you want to delete this ride? This action cannot be undone.',
@@ -179,7 +185,8 @@ const RideDetailsScreen = () => {
           style: 'destructive',
           onPress: async () => {
             try {
-              // await deleteRide(ride._id);
+              setIsProcessing(true);
+              await deleteRide(idToDelete);
               Alert.alert('Success', 'Ride deleted successfully');
               const handleNavigateToRideList = () => {
                 (navigation as any).navigate('MainTabs', {
@@ -189,7 +196,10 @@ const RideDetailsScreen = () => {
               handleNavigateToRideList();
             } catch (error) {
               console.error('Error deleting ride:', error);
-              Alert.alert('Error', 'Failed to delete ride');
+              const message = error instanceof Error ? error.message : 'Failed to delete ride';
+              Alert.alert('Error', message);
+            } finally {
+              setIsProcessing(false);
             }
           },
         },
@@ -1383,14 +1393,14 @@ const styles = StyleSheet.create({
   },
   detailText: {
     fontSize: 15,
-    color: colors.secondaryLight,
+    color: colors.text,
     fontWeight: '500',
     marginLeft: 8,
   },
   // Date Time Text
   dateTimeText: {
     fontSize: 15,
-    color: colors.secondaryLight,
+    color: colors.white,
     fontWeight: '500',
   },
   // Status Badges

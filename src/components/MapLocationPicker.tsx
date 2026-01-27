@@ -43,28 +43,39 @@ const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
 
   // Format address to show only relevant parts (city or location name)
   const formatAddress = (addressResult: Location.LocationGeocodedAddress): string => {
-    // Try to get the most relevant part of the address
-    const parts = [
-      addressResult.name || '',
-      addressResult.street || '',
-      addressResult.city || '',
-      addressResult.region || '',
-    ].filter(part => part && part.trim() !== '');
+    const isPlusCode = (value?: string | null) => {
+      if (!value) return false;
+      const v = value.trim();
+      return /[A-Z0-9]{4,}\+[A-Z0-9]{2,}/i.test(v);
+    };
 
-    // If we have a name or street, use those, otherwise fall back to city/region
-    if (parts.length > 0) {
-      return parts[0]; // Return the most specific location part available
+    const cityLike =
+      addressResult.city ||
+      (addressResult as any).district ||
+      (addressResult as any).subregion ||
+      addressResult.region ||
+      '';
+
+    if (cityLike && cityLike.trim()) {
+      return cityLike.trim();
     }
-    
-    // If we have nothing else, return the full address without codes
-    const fullAddress = [
-      addressResult.name || '',
-      addressResult.street || '',
-      addressResult.city || '',
-      addressResult.region || '',
-    ].filter(part => part && part.trim() !== '').join(', ');
 
-    return fullAddress || 'Selected Location';
+    const name = addressResult.name?.trim();
+    if (name && !isPlusCode(name)) {
+      return name;
+    }
+
+    const street = addressResult.street?.trim();
+    if (street && !isPlusCode(street)) {
+      return street;
+    }
+
+    const region = addressResult.region?.trim();
+    if (region) {
+      return region;
+    }
+
+    return 'Selected Location';
   };
 
   // Set initial region if initialLocation is provided
