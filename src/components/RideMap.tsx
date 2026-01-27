@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { View, StyleSheet, Dimensions, Text, ViewStyle, StyleProp, ActivityIndicator } from 'react-native';
-import MapView, { Marker, Region, Polyline } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../constants/theme';
 import { Ride } from '../types/ride';
 import { featureFlags } from '../constants/theme';
+import WebView from 'react-native-webview';
 
 // Define Coordinates type since it's not directly exported from react-native-maps
 interface Coordinates {
@@ -47,27 +47,9 @@ const RideMap: React.FC<RideMapProps> = ({
   const [destination, setDestination] = useState<Coordinates | null>(ride.endPointCoords || null);
   const [loading, setLoading] = useState(!ride.startPointCoords || !ride.endPointCoords);
   const [error, setError] = useState<string | null>(null);
+  const mapRef = useRef<WebView>(null);
 
   useEffect(() => {
-    const requestLocationPermission = async () => {
-      try {
-        // Check if we already have permission
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        
-        if (status !== 'granted') {
-          setError('Location permission is required to show the route on map.');
-          setLoading(false);
-          return false;
-        }
-        return true;
-      } catch (err) {
-        console.error('Error requesting location permission:', err);
-        setError('Failed to request location permission.');
-        setLoading(false);
-        return false;
-      }
-    };
-
     const geocodeLocations = async () => {
       if (origin && destination) {
         setLoading(false);
@@ -77,10 +59,6 @@ const RideMap: React.FC<RideMapProps> = ({
       try {
         setLoading(true);
         setError(null);
-        
-        // Request location permission first
-        const hasPermission = await requestLocationPermission();
-        if (!hasPermission) return;
         
         // Geocode start point if needed
         if (!origin && ride.startPoint) {
@@ -119,6 +97,73 @@ const RideMap: React.FC<RideMapProps> = ({
 
     geocodeLocations();
   }, [ride.startPoint, ride.endPoint]);
+
+  const leafletHtml = useMemo(() => {
+    return `<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+      html, body, #map { height: 100%; width: 100%; margin: 0; padding: 0; }
+    </style>
+  </head>
+  <body>
+    <div id="map"></div>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+      (function () {
+        var map = L.map('map', { zoomControl: true });
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 19,
+          attribution: '© OpenStreetMap'
+        }).addTo(map);
+
+        var originMarker = null;
+        var destMarker = null;
+        var routeLine = null;
+
+        window.__setRoute = function(oLat, oLng, dLat, dLng) {
+          try {
+            var origin = [oLat, oLng];
+            var dest = [dLat, dLng];
+
+            if (originMarker) { originMarker.setLatLng(origin); }
+            else { originMarker = L.marker(origin).addTo(map); }
+
+            if (destMarker) { destMarker.setLatLng(dest); }
+            else { destMarker = L.marker(dest).addTo(map); }
+
+            if (routeLine) { routeLine.setLatLngs([origin, dest]); }
+            else {
+              routeLine = L.polyline([origin, dest], {
+                color: '${colors.primary}',
+                weight: 3,
+                dashArray: '5,5'
+              }).addTo(map);
+            }
+
+            var bounds = L.latLngBounds([origin, dest]);
+            map.fitBounds(bounds, { padding: [30, 30] });
+          } catch (e) {}
+        };
+
+        map.setView([${DEFAULT_REGION.latitude}, ${DEFAULT_REGION.longitude}], 5);
+      })();
+    </script>
+  </body>
+</html>`;
+  }, []);
+
+  useEffect(() => {
+    if (!featureFlags.showMaps) return;
+    if (!origin || !destination) return;
+    if (!mapRef.current) return;
+
+    mapRef.current.injectJavaScript(
+      `if (window.__setRoute) { window.__setRoute(${origin.latitude}, ${origin.longitude}, ${destination.latitude}, ${destination.longitude}); } true;`
+    );
+  }, [origin?.latitude, origin?.longitude, destination?.latitude, destination?.longitude]);
 
   // Calculate region to show both points
   const getMapRegion = () => {
@@ -185,69 +230,14 @@ const RideMap: React.FC<RideMapProps> = ({
     );
   }
 
-  // Calculate initial region based on start and end points
-  const initialRegion: Region = origin && destination ? {
-    latitude: (origin.latitude + destination.latitude) / 2,
-    longitude: (origin.longitude + destination.longitude) / 2,
-    latitudeDelta: Math.max(
-      Math.abs(origin.latitude - destination.latitude) * 1.5,
-      0.01
-    ),
-    longitudeDelta: Math.max(
-      Math.abs(origin.longitude - destination.longitude) * 1.5,
-      0.01
-    ),
-  } : FALLBACK_COORDS;
-
-  const containerStyle = [
-    styles.container,
-    { height, width },
-    style
-  ] as StyleProp<ViewStyle>;
-  // Use fallback if coordinates are still not available
-  const effectiveOrigin = origin || FALLBACK_COORDS;
-  const effectiveDestination = destination || FALLBACK_COORDS;
-
   return (
     <View style={[styles.container, { height, width }, style]}>
       {featureFlags.showMaps ? (
-        <MapView
-          style={styles.map}
-          initialRegion={getMapRegion()}
-          region={getMapRegion()}
-          mapType="standard"
-        >
-          {origin && (
-            <Marker
-              coordinate={origin}
-              title="Pickup Location"
-              description={ride.startPoint}
-            >
-              <View style={styles.marker}>
-                <Ionicons name="location" size={24} color={colors.primary} />
-              </View>
-            </Marker>
-          )}
-          {destination && (
-            <Marker
-              coordinate={destination}
-              title="Drop-off Location"
-              description={ride.endPoint}
-            >
-              <View style={[styles.marker, { backgroundColor: colors.secondary }]}>
-                <Ionicons name="flag" size={20} color={colors.white} />
-              </View>
-            </Marker>
-          )}
-          {origin && destination && (
-            <Polyline
-              coordinates={[origin, destination]}
-              strokeColor={colors.primary}
-              strokeWidth={3}
-              lineDashPattern={[5, 5]} // Optional: makes it a dashed line
-            />
-          )}
-        </MapView>
+        <WebView
+          ref={mapRef}
+          originWhitelist={['*']}
+          source={{ html: leafletHtml }}
+        />
       ) : (
         <View style={styles.mapPlaceholder}>
           <Ionicons name="map-outline" size={32} color={colors.textSecondary} />

@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, StyleSheet, Text, TouchableOpacity, TextInput, Platform, Alert } from 'react-native';
-import MapView, { Marker, Region } from 'react-native-maps';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { View, StyleSheet, Text, TouchableOpacity, TextInput, Alert } from 'react-native';
 import { Button } from 'react-native-paper';
 import * as Location from 'expo-location';
 import debounce from 'lodash.debounce';
 import { featureFlags } from '../constants/theme';
+import WebView, { WebViewMessageEvent } from 'react-native-webview';
 
 interface MapLocationPickerProps {
   onLocationSelect: (location: { latitude: number; longitude: number; address: string }) => void;
@@ -15,6 +15,13 @@ interface MapLocationPickerProps {
   };
   label: string;
 }
+
+type Region = {
+  latitude: number;
+  longitude: number;
+  latitudeDelta: number;
+  longitudeDelta: number;
+};
 
 const DEFAULT_REGION = {
   latitude: 20.5937,  // Center of India
@@ -32,6 +39,7 @@ const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
   const [address, setAddress] = useState(initialLocation?.address || '');
   const [isLoading, setIsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState(initialLocation?.address || '');
+  const mapRef = useRef<WebView>(null);
 
   // Format address to show only relevant parts (city or location name)
   const formatAddress = (addressResult: Location.LocationGeocodedAddress): string => {
@@ -72,6 +80,15 @@ const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
       getCurrentLocation();
     }
   }, []);
+
+  useEffect(() => {
+    if (!featureFlags.showMaps) return;
+    if (!mapRef.current) return;
+    const zoom = region.latitudeDelta <= 0.02 ? 15 : 5;
+    mapRef.current.injectJavaScript(
+      `if (window.__setView) { window.__setView(${region.latitude}, ${region.longitude}, ${zoom}); } if (window.__setMarker) { window.__setMarker(${region.latitude}, ${region.longitude}); } true;`
+    );
+  }, [region.latitude, region.longitude, region.latitudeDelta]);
 
   // Search for a location by address
   const searchLocation = useCallback(debounce(async (query: string) => {
@@ -153,8 +170,7 @@ const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
     }
   };
 
-  const handleMapPress = async (e: any) => {
-    const { latitude, longitude } = e.nativeEvent.coordinate;
+  const handleMapPress = async (latitude: number, longitude: number) => {
     
     try {
       setIsLoading(true);
@@ -187,6 +203,56 @@ const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
     }
   };
 
+  const leafletHtml = useMemo(() => {
+    return `<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+      html, body, #map { height: 100%; width: 100%; margin: 0; padding: 0; }
+    </style>
+  </head>
+  <body>
+    <div id="map"></div>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+      (function () {
+        var map = L.map('map', { zoomControl: true });
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 19,
+          attribution: '© OpenStreetMap'
+        }).addTo(map);
+
+        var marker = null;
+
+        window.__setView = function(lat, lng, zoom) {
+          try { map.setView([lat, lng], zoom); } catch (e) {}
+        };
+        window.__setMarker = function(lat, lng) {
+          try {
+            if (marker) { marker.setLatLng([lat, lng]); }
+            else { marker = L.marker([lat, lng]).addTo(map); }
+          } catch (e) {}
+        };
+
+        window.__setView(${DEFAULT_REGION.latitude}, ${DEFAULT_REGION.longitude}, 5);
+
+        map.on('click', function(e) {
+          try {
+            window.ReactNativeWebView.postMessage(JSON.stringify({
+              type: 'click',
+              latitude: e.latlng.lat,
+              longitude: e.latlng.lng
+            }));
+          } catch (err) {}
+        });
+      })();
+    </script>
+  </body>
+</html>`;
+  }, []);
+
   return (
     <View style={styles.container}>
       <Text style={styles.label}>{label}</Text>
@@ -214,26 +280,20 @@ const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
 
       <View style={styles.mapContainer}>
         {featureFlags.showMaps ? (
-          <MapView
-            style={styles.map}
-            region={region}
-            onPress={handleMapPress}
-            showsUserLocation={true}
-            showsMyLocationButton={false}
-            zoomEnabled={true}
-            zoomControlEnabled={true}
-          >
-            {region.latitude !== DEFAULT_REGION.latitude && (
-              <Marker
-                coordinate={{
-                  latitude: region.latitude,
-                  longitude: region.longitude,
-                }}
-                title="Selected Location"
-                description={address}
-              />
-            )}
-          </MapView>
+          <WebView
+            ref={mapRef}
+            originWhitelist={['*']}
+            source={{ html: leafletHtml }}
+            onMessage={async (event: WebViewMessageEvent) => {
+              try {
+                const data = JSON.parse(event.nativeEvent.data);
+                if (data?.type === 'click' && typeof data.latitude === 'number' && typeof data.longitude === 'number') {
+                  await handleMapPress(data.latitude, data.longitude);
+                }
+              } catch (e) {
+              }
+            }}
+          />
         ) : (
           <View style={styles.mapPlaceholder}>
             <Text style={styles.placeholderText}>Maps are temporarily disabled</Text>

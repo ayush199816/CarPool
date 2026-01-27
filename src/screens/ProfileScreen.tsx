@@ -7,6 +7,7 @@ import { useNavigation } from '@react-navigation/native';
 import { SCREENS } from '../navigation/types';
 import { getVehicles } from '../services/vehicleService';
 import { useEffect, useState } from 'react';
+import { colors } from '../constants/theme';
 
 const ProfileScreen = () => {
   const { user, logout, isUserVerified, getVerifiedVehicles, token } = useAuth();
@@ -75,7 +76,7 @@ const ProfileScreen = () => {
     <View style={styles.container}>
       <View style={styles.profileHeader}>
         <View style={styles.avatar}>
-          <Ionicons name="person" size={60} color="#fff" />
+          <Ionicons name="person" size={60} color={colors.white} />
         </View>
         <Text style={styles.userName}>{user?.name || 'User'}</Text>
         <Text style={styles.userEmail}>{user?.email || ''}</Text>
@@ -83,7 +84,7 @@ const ProfileScreen = () => {
           <Ionicons 
             name={isUserVerified() ? "checkmark-circle" : "time"} 
             size={16} 
-            color="#fff" 
+            color={colors.white} 
             style={styles.badgeIcon} 
           />
           <Text style={styles.verificationText}>
@@ -98,13 +99,13 @@ const ProfileScreen = () => {
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>My Vehicles</Text>
             <TouchableOpacity onPress={navigateToAddVehicle} style={styles.addButton}>
-              <Ionicons name="add" size={20} color="#fff" />
+              <Ionicons name="add" size={20} color={colors.white} />
             </TouchableOpacity>
           </View>
           
           {isLoading ? (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="small" color="#007AFF" />
+              <ActivityIndicator size="small" color={colors.secondary} />
             </View>
           ) : userVehicles.length > 0 ? (
             userVehicles.map((vehicle, index) => (
@@ -120,7 +121,7 @@ const ProfileScreen = () => {
                   <Ionicons 
                     name={vehicle.verificationStatus === 'verified' ? "checkmark-circle" : "time"} 
                     size={14} 
-                    color="#fff" 
+                    color={colors.white} 
                   />
                   <Text style={styles.verificationText}>
                     {vehicle.verificationStatus === 'verified' ? 'Verified' : 'Pending'}
@@ -147,11 +148,11 @@ const ProfileScreen = () => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Account Information</Text>
           <View style={styles.infoItem}>
-            <Ionicons name="mail-outline" size={20} color="#666" style={styles.infoIcon} />
+            <Ionicons name="mail-outline" size={20} color={colors.textSecondary} style={styles.infoIcon} />
             <Text style={styles.infoText}>{user?.email || 'No email'}</Text>
           </View>
           <View style={styles.infoItem}>
-            <Ionicons name="phone-portrait-outline" size={20} color="#666" style={styles.infoIcon} />
+            <Ionicons name="phone-portrait-outline" size={20} color={colors.textSecondary} style={styles.infoIcon} />
             <Text style={styles.infoText}>{user?.phone || 'No phone number'}</Text>
           </View>
         </View>
@@ -167,7 +168,7 @@ const ProfileScreen = () => {
               <Ionicons 
                 name={user?.verification?.documents ? "checkmark-circle" : "alert-circle"} 
                 size={24} 
-                color={user?.verification?.documents ? "#4CAF50" : "#FFA000"} 
+                color={user?.verification?.documents ? colors.success : colors.warning} 
               />
             </View>
             <View style={styles.menuTextContainer}>
@@ -180,16 +181,16 @@ const ProfileScreen = () => {
                   'Upload ID and address proof'}
               </Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color="#999" />
+            <Ionicons name="chevron-forward" size={20} color={colors.gray} />
           </TouchableOpacity>
         </View>
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Rides</Text>
           <TouchableOpacity style={styles.menuItem}>
-            <Ionicons name="car-outline" size={24} color="#333" />
+            <Ionicons name="car-outline" size={24} color={colors.text} />
             <Text style={styles.menuText}>My Rides</Text>
-            <Ionicons name="chevron-forward" size={20} color="#999" />
+            <Ionicons name="chevron-forward" size={20} color={colors.gray} />
           </TouchableOpacity>
         </View>
 
@@ -204,12 +205,12 @@ const ProfileScreen = () => {
               }}
             >
               <View style={styles.menuIconContainer}>
-                <Ionicons name="shield-outline" size={24} color="#007AFF" />
+                <Ionicons name="shield-outline" size={24} color={colors.secondary} />
               </View>
               <View style={styles.menuTextContainer}>
                 <Text style={styles.menuText}>Admin Panel</Text>
               </View>
-              <Ionicons name="chevron-forward" size={20} color="#999" />
+              <Ionicons name="chevron-forward" size={20} color={colors.gray} />
             </TouchableOpacity>
           </View>
         )}
@@ -220,8 +221,8 @@ const ProfileScreen = () => {
             style={[styles.menuItem, styles.logoutButton]}
             onPress={handleLogout}
           >
-            <Ionicons name="log-out-outline" size={24} color="#ff4444" />
-            <Text style={[styles.menuText, { color: '#ff4444' }]}>Logout</Text>
+            <Ionicons name="log-out-outline" size={24} color={colors.error} />
+            <Text style={[styles.menuText, { color: colors.error }]}>Logout</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -233,7 +234,7 @@ const styles = StyleSheet.create({
   // Layout
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.lightGray,
   },
   scrollView: {
     flex: 1,
@@ -243,13 +244,13 @@ const styles = StyleSheet.create({
   },
   header: {
     fontSize: 16,
-    color: '#333',
+    color: colors.text,
     flex: 1,
   },
   // menuItem style moved to Menu Item section below
   card: {
     elevation: 1,
-    shadowColor: '#000',
+    shadowColor: colors.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
@@ -261,7 +262,7 @@ const styles = StyleSheet.create({
   },
   infoText: {
     fontSize: 16,
-    color: '#333',
+    color: colors.text,
     flex: 1,
   },
   // logoutButton style moved to Menu Item section below
@@ -271,15 +272,15 @@ const styles = StyleSheet.create({
   },
   noVehiclesText: {
     fontSize: 16,
-    color: '#666',
+    color: colors.textSecondary,
     marginBottom: 15,
   },
   addVehicleButton: {
     width: '100%',
-    backgroundColor: '#007AFF',
+    backgroundColor: colors.secondary,
   },
   vehicleCard: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.card,
     borderRadius: 8,
     padding: 16,
     marginBottom: 12,
@@ -287,7 +288,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     elevation: 1,
-    shadowColor: '#000',
+    shadowColor: colors.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
@@ -302,12 +303,12 @@ const styles = StyleSheet.create({
   },
   vehiclePlate: {
     fontSize: 14,
-    color: '#666',
+    color: colors.textSecondary,
   },
   
   // Profile Header
   profileHeader: {
-    backgroundColor: '#007AFF',
+    backgroundColor: colors.primary,
     padding: 20,
     paddingTop: 50,
     alignItems: 'center',
@@ -327,7 +328,7 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: '#fff',
+    color: colors.white,
     marginBottom: 5,
   },
   userEmail: {
@@ -343,12 +344,12 @@ const styles = StyleSheet.create({
   
   // Section
   section: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.card,
     borderRadius: 12,
     marginBottom: 16,
     overflow: 'hidden',
     elevation: 2,
-    shadowColor: '#000',
+    shadowColor: colors.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -359,17 +360,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: colors.border,
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: colors.text,
   },
   
   // Buttons
   addButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: colors.secondary,
     width: 32,
     height: 32,
     borderRadius: 16,
@@ -390,7 +391,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: colors.border,
   },
   
   // Menu Container
@@ -406,7 +407,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: colors.border,
   },
   menuIconContainer: {
     width: 40,
@@ -419,17 +420,17 @@ const styles = StyleSheet.create({
   },
   menuSubtext: {
     fontSize: 12,
-    color: '#666',
+    color: colors.textSecondary,
     marginTop: 2,
   },
   menuText: {
     fontSize: 15,
-    color: '#333',
+    color: colors.text,
     fontWeight: '500',
   },
   debugText: {
     fontSize: 10,
-    color: '#666',
+    color: colors.textSecondary,
     marginTop: 2,
   },
   // Logout button style - consolidated
@@ -446,13 +447,13 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   verifiedBadge: {
-    backgroundColor: 'rgba(76, 175, 80, 0.9)',
+    backgroundColor: colors.success,
   },
   pendingBadge: {
-    backgroundColor: 'rgba(255, 160, 0, 0.9)',
+    backgroundColor: colors.warning,
   },
   verificationText: {
-    color: '#fff',
+    color: colors.white,
     fontSize: 12,
     fontWeight: '500',
     marginLeft: 4,

@@ -681,18 +681,18 @@ const RideDetailsScreen = () => {
                   <Text style={styles.sectionTitle}>Vehicle Information</Text>
                 </View>
                 
-                {typeof ride.vehicleId === 'object' ? (
+                {ride.vehicle ? (
                   <View style={styles.vehicleDetails}>
                     <Text style={styles.vehicleName}>
-                      {ride.vehicleId.make} {ride.vehicleId.modelName} ({ride.vehicleId.year})
+                      {ride.vehicle.make} {ride.vehicle.model} ({ride.vehicle.year})
                     </Text>
                     <View style={styles.vehicleDetailRow}>
                       <Ionicons name="pricetag" size={16} color="#4A6FA5" style={styles.detailIcon} />
                       <Text style={styles.vehicleDetailText}>
-                        {ride.vehicleId.color} • {ride.vehicleId.registrationNumber}
+                        {ride.vehicle.color} • {ride.vehicle.registrationNumber}
                       </Text>
                     </View>
-                    {ride.vehicleId.verificationStatus === 'verified' && (
+                    {ride.vehicle.verified && (
                       <View style={styles.verifiedBadge}>
                         <Ionicons name="checkmark-circle" size={14} color="#4CAF50" />
                         <Text style={styles.verifiedBadgeText}>Verified</Text>
@@ -1489,12 +1489,12 @@ const styles = StyleSheet.create({
     marginHorizontal: 5,
   },
   callButton: {
-    backgroundColor: '#FFF3E0', // Light orange background for call button
+    backgroundColor: colors.secondaryLight, // Light orange background for call button
     borderWidth: 1,
     borderColor: colors.secondaryLight,
   },
   messageButton: {
-    backgroundColor: '#FFF3E0', // Light orange background for message button
+    backgroundColor: colors.secondaryLight, // Light orange background for message button
     borderWidth: 1,
     borderColor: colors.secondaryLight,
   },
@@ -1508,7 +1508,7 @@ const styles = StyleSheet.create({
     marginTop: 15,
   },
   editButton: {
-    backgroundColor: '#2196F3',
+    backgroundColor: colors.secondary,
   },
   deleteButton: {
     backgroundColor: '#F44336',

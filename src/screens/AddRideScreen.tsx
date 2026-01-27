@@ -738,7 +738,7 @@ const styles = StyleSheet.create({
     height: 50,
     marginRight: 10,
     marginLeft: 10,
-    color: colors.secondaryLight,
+    color: colors.text,
   },
   // Radio button group
   radioGroup: {
@@ -774,8 +774,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   radioOptionSelected: {
-    backgroundColor: '#E3F2FD',
-    borderColor: '#007AFF',
+    backgroundColor: colors.secondaryLight,
+    borderColor: colors.secondary,
   },
   radioText: {
     marginLeft: 8,
@@ -796,18 +796,18 @@ const styles = StyleSheet.create({
     borderColor: colors.inputBorder,
     borderRadius: 8,
     marginBottom: 8,
-    backgroundColor: colors.secondaryLight,
+    backgroundColor: colors.card,
   },
   vehicleOptionSelected: {
     borderColor: colors.secondary,
-    backgroundColor:'White',
+    backgroundColor: colors.background,
   },
   vehicleText: {
     fontSize: 15,
-    color: colors.secondaryLight,
+    color: colors.text,
   },
   vehicleSelectedIcon: {
-    color: colors.secondaryLight,
+    color: colors.secondary,
     fontSize: 18,
     fontWeight: 'bold',
   },

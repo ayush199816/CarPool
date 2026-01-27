@@ -6,21 +6,21 @@ export const colors = {
   primaryDark: '#051123',    // Darker Navy
   
   // Secondary Colors (CTAs and Highlights)
-  secondary: '#FF5722',      // Flame Orange
-  secondaryLight: '#FF8A50', // Lighter Orange
-  secondaryDark: '#E64A19',  // Darker Orange
+  secondary: '#0A84FF',      // Flame Orange
+  secondaryLight: '#EAF4FF', // Lighter Orange
+  secondaryDark: '#005BBB',  // Darker Orange
   
   // Accent Colors
-  accent: '#FFC107',         // Amber Yellow
-  accentLight: '#FFD54F',    // Lighter Amber
-  accentDark: '#FFA000',     // Darker Amber
+  accent: '#5AC8FA',         // Amber Yellow
+  accentLight: '#EAF4FF',    // Lighter Amber
+  accentDark: '#1E3A5F',     // Darker Amber
   
   // UI Colors
-  background: '#F5F5F5',     // Soft Gray
+  background: '#FFFFFF',     // Soft Gray
   card: '#FFFFFF',           // White
-  text: '#212121',           // Almost Black
-  textSecondary: '#546E7A',  // Secondary Text
-  border: '#B0BEC5',         // Cool Gray Blue
+  text: '#0B1F3A',           // Almost Black
+  textSecondary: '#4A607A',  // Secondary Text
+  border: '#D6E4F0',         // Cool Gray Blue
   white: '#FFFFFF',
   black: '#000000',
   success: '#4CAF50',
@@ -30,13 +30,13 @@ export const colors = {
   danger: '#F44336',
   
   // Gradient Colors
-  gradientOrangeYellowRed: ['#FF5722', '#FF9800', '#FF5722', '#F44336'], // Orange to Yellow to Red gradient
-  gradientOrangeRed: ['#FF5722', '#F44336'], // Orange to Red gradient
-  gradientYellowOrange: ['#FFC107', '#FF9800'], // Yellow to Orange gradient
+  gradientOrangeYellowRed: ['#0A84FF', '#5AC8FA', '#0A84FF', '#005BBB'], // Orange to Yellow to Red gradient
+  gradientOrangeRed: ['#0A84FF', '#005BBB'], // Orange to Red gradient
+  gradientYellowOrange: ['#EAF4FF', '#0A84FF'], // Yellow to Orange gradient
   
   // Additional UI Colors
   inputBackground: '#FFFFFF',
-  inputBorder: '#B0BEC5',
+  inputBorder: '#D6E4F0',
   shadow: 'rgba(11, 31, 58, 0.1)',
   
   // Grayscale
@@ -50,7 +50,7 @@ export const colors = {
 
 // Feature flags
 export const featureFlags = {
-  showMaps: false,  // Temporarily disable maps
+  showMaps: true,  // Temporarily disable maps
 };
 
 // Font sizes

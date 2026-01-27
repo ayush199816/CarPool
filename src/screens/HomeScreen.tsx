@@ -170,7 +170,7 @@ const styles = StyleSheet.create({
   welcomeText: {
     fontSize: 28,
     fontWeight: '800',
-    color: colors.secondaryDark,
+    color: colors.white,
     marginBottom: 5,
     textShadowColor: 'rgba(0, 0, 0, 0.15)',
     textShadowOffset: { width: 1, height: 1 },
@@ -179,7 +179,7 @@ const styles = StyleSheet.create({
   },
   headerSubtitle: {
     fontSize: 15,
-    color: colors.secondaryDark,
+    color: colors.white,
     marginBottom: 0,
     fontWeight: '500',
     lineHeight: 22,
@@ -197,7 +197,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '700',
     marginVertical: 8,
-    color: colors.secondaryDark,
+    color: colors.white,
     marginLeft: 0,
     letterSpacing: 0.3,
   },
