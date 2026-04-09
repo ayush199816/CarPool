@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, Alert, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, ScrollView, Alert, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
 import { Button, TextInput, Text, useTheme, HelperText, SegmentedButtons } from 'react-native-paper';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
@@ -29,6 +29,7 @@ const AddVehicleScreen: React.FC<Props> = ({ navigation }) => {
     licensePlate: '',
     registrationNumber: '',
     registrationExpiry: '',
+    seater: '',
     insuranceProvider: '',
     insuranceNumber: '',
     insuranceExpiry: '',
@@ -45,7 +46,7 @@ const AddVehicleScreen: React.FC<Props> = ({ navigation }) => {
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
-    
+
     if (!formData.vehicleType) newErrors.vehicleType = 'Vehicle type is required';
     if (!formData.make.trim()) newErrors.make = 'Make is required';
     if (!formData.modelName.trim()) newErrors.modelName = 'Model is required';
@@ -54,7 +55,10 @@ const AddVehicleScreen: React.FC<Props> = ({ navigation }) => {
     if (!formData.licensePlate.trim()) newErrors.licensePlate = 'License plate is required';
     if (!formData.registrationNumber.trim()) newErrors.registrationNumber = 'Registration number is required';
     if (!formData.registrationExpiry) newErrors.registrationExpiry = 'Registration expiry is required';
-    
+    if (!formData.seater.trim()) newErrors.seater = 'Number of seats is required';
+    if (!formData.insuranceProvider.trim()) newErrors.insuranceProvider = 'Insurance provider is required';
+    if (!formData.insuranceNumber.trim()) newErrors.insuranceNumber = 'Insurance number is required';
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -68,10 +72,9 @@ const AddVehicleScreen: React.FC<Props> = ({ navigation }) => {
       const vehicleData = {
         ...formData,
         year: parseInt(formData.year, 10),
+        seater: parseInt(formData.seater, 10),
         registrationExpiry: formData.registrationExpiry,
         insuranceExpiry: formData.insuranceExpiry || undefined,
-        insuranceProvider: formData.insuranceProvider || undefined,
-        insuranceNumber: formData.insuranceNumber || undefined,
       };
       
       if (!token) {
@@ -109,8 +112,17 @@ const AddVehicleScreen: React.FC<Props> = ({ navigation }) => {
   }
 
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.title}>Add New Vehicle</Text>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
+    >
+      <ScrollView
+        style={styles.scrollContainer}
+        contentContainerStyle={styles.contentContainer}
+        keyboardShouldPersistTaps="handled"
+      >
+        <Text style={styles.title}>Add New Vehicle</Text>
       
       <Text style={styles.sectionTitle}>Vehicle Type *</Text>
       <SegmentedButtons
@@ -187,9 +199,10 @@ const AddVehicleScreen: React.FC<Props> = ({ navigation }) => {
       <TextInput
         label="License Plate *"
         value={formData.licensePlate}
-        onChangeText={(text) => handleChange('licensePlate', text.toUpperCase())}
+        onChangeText={(text) => handleChange('licensePlate', text)}
         style={styles.input}
         error={!!errors.licensePlate}
+        autoCapitalize="characters"
       />
       <HelperText type="error" visible={!!errors.licensePlate}>
         {errors.licensePlate}
@@ -219,18 +232,38 @@ const AddVehicleScreen: React.FC<Props> = ({ navigation }) => {
       </HelperText>
 
       <TextInput
-        label="Insurance Provider"
+        label="Number of Seats *"
+        value={formData.seater}
+        onChangeText={(text) => handleChange('seater', text)}
+        keyboardType="numeric"
+        style={styles.input}
+        error={!!errors.seater}
+      />
+      <HelperText type="error" visible={!!errors.seater}>
+        {errors.seater}
+      </HelperText>
+
+      <TextInput
+        label="Insurance Provider *"
         value={formData.insuranceProvider}
         onChangeText={(text) => handleChange('insuranceProvider', text)}
         style={styles.input}
+        error={!!errors.insuranceProvider}
       />
+      <HelperText type="error" visible={!!errors.insuranceProvider}>
+        {errors.insuranceProvider}
+      </HelperText>
 
       <TextInput
-        label="Insurance Number"
+        label="Insurance Number *"
         value={formData.insuranceNumber}
         onChangeText={(text) => handleChange('insuranceNumber', text)}
         style={styles.input}
+        error={!!errors.insuranceNumber}
       />
+      <HelperText type="error" visible={!!errors.insuranceNumber}>
+        {errors.insuranceNumber}
+      </HelperText>
 
       <TextInput
         label="Insurance Expiry (YYYY-MM-DD)"
@@ -249,15 +282,21 @@ const AddVehicleScreen: React.FC<Props> = ({ navigation }) => {
       >
         Add Vehicle
       </Button>
-    </ScrollView>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
     backgroundColor: '#fff',
+  },
+  scrollContainer: {
+    flex: 1,
+  },
+  contentContainer: {
+    padding: 16,
   },
   loadingContainer: {
     flex: 1,

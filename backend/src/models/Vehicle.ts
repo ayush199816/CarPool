@@ -9,6 +9,7 @@ export interface IVehicle extends Document {
   licensePlate: string;
   registrationNumber: string;
   registrationExpiry: Date;
+  seater: number;
   insuranceProvider?: string;
   insuranceNumber?: string;
   insuranceExpiry?: Date;
@@ -64,6 +65,12 @@ const VehicleSchema: Schema = new Schema(
     registrationExpiry: {
       type: Date,
       required: [true, 'Registration expiry date is required'],
+    },
+    seater: {
+      type: Number,
+      required: [true, 'Number of seats is required'],
+      min: [1, 'Minimum 1 seat required'],
+      max: [50, 'Maximum 50 seats allowed'],
     },
     insuranceProvider: {
       type: String,

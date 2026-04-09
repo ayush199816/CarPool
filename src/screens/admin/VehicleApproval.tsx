@@ -4,12 +4,15 @@ import { useNavigation } from '@react-navigation/native';
 import { getPendingVerifications, updateVerificationStatus } from '../../services/verificationService';
 import { VehicleVerification } from '../../services/verificationService';
 import { API_URL } from '../../Config';
+import { SegmentedButtons } from 'react-native-paper';
 
 const VehicleApproval = () => {
   const [verifications, setVerifications] = useState<VehicleVerification[]>([]);
+  const [vehicles, setVehicles] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [tabValue, setTabValue] = useState('pending');
   const navigation = useNavigation();
 
   const loadVerifications = async () => {
@@ -78,6 +81,22 @@ const VehicleApproval = () => {
         <View style={styles.detailRow}>
           <Text style={styles.detailLabel}>License Plate:</Text>
           <Text style={styles.detailValue}>{item.vehicle.licensePlate}</Text>
+        </View>
+        <View style={styles.detailRow}>
+          <Text style={styles.detailLabel}>Seater Capacity:</Text>
+          <Text style={styles.detailValue}>{item.vehicle.seater}</Text>
+        </View>
+        <View style={styles.detailRow}>
+          <Text style={styles.detailLabel}>Insurance Provider:</Text>
+          <Text style={styles.detailValue}>{item.vehicle.insuranceProvider}</Text>
+        </View>
+        <View style={styles.detailRow}>
+          <Text style={styles.detailLabel}>Insurance Number:</Text>
+          <Text style={styles.detailValue}>{item.vehicle.insuranceNumber}</Text>
+        </View>
+        <View style={styles.detailRow}>
+          <Text style={styles.detailLabel}>Insurance Expiry:</Text>
+          <Text style={styles.detailValue}>{new Date(item.vehicle.insuranceExpiry).toLocaleDateString()}</Text>
         </View>
       </View>
       

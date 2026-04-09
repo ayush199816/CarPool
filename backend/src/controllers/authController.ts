@@ -10,7 +10,7 @@ import { generateToken } from '../middleware/authMiddleware';
 // @access  Public
 export const register = async (req: Request, res: Response) => {
   try {
-    const { name, email, password, phone } = req.body;
+    const { name, email, password, phone, termsAccepted } = req.body;
 
     // Check if user exists
     const userExists = await User.findOne({ email });
@@ -23,7 +23,8 @@ export const register = async (req: Request, res: Response) => {
       name,
       email,
       password,
-      phone
+      phone,
+      termsAccepted
     });
 
     if (user) {
@@ -32,6 +33,7 @@ export const register = async (req: Request, res: Response) => {
         _id: userObj._id,
         name: userObj.name,
         email: userObj.email,
+        termsAccepted: userObj.termsAccepted,
         phone: userObj.phone,
         token: generateToken(userObj._id)
       });
@@ -80,7 +82,7 @@ export const login = async (req: Request, res: Response) => {
 // @access  Public
 export const createAdmin = async (req: Request, res: Response) => {
   try {
-    const { name, email, password, phone } = req.body;
+    const { name, email, password, phone, termsAccepted } = req.body;
     
     // Check if admin already exists
     const adminExists = await User.findOne({ email: 'admin@CarPool.com' });

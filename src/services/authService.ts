@@ -14,6 +14,7 @@ interface RegisterCredentials {
   email: string;
   phone: string;
   password: string;
+  termsAccepted: boolean;
 }
 
 interface LoginCredentials {
@@ -52,7 +53,13 @@ export const authService = {
   // Register a new user
   register: async (userData: RegisterCredentials): Promise<LoginResponse> => {
     try {
-      const response = await api.post<any>('/auth/register', userData);
+      const response = await api.post<any>('/auth/register', {
+        name: userData.name,
+        email: userData.email,
+        phone: userData.phone,
+        password: userData.password,
+        termsAccepted: userData.termsAccepted
+      });
       
       // Transform the response to match the expected LoginResponse structure
       return {

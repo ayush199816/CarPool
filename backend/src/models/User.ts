@@ -7,6 +7,7 @@ export interface IUser extends Document {
   password: string;
   phone?: string;
   isAdmin: boolean;
+  termsAccepted: boolean;
   createdAt: Date;
   updatedAt: Date;
   comparePassword(candidatePassword: string): Promise<boolean>;
@@ -44,6 +45,11 @@ const userSchema = new Schema<IUser>({
   isAdmin: {
     type: Boolean,
     required: true,
+    default: false
+  },
+  termsAccepted: {
+    type: Boolean,
+    required: [true, 'You must accept the terms and conditions'],
     default: false
   },
 }, {

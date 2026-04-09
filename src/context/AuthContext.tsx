@@ -78,12 +78,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const register = async (name: string, email: string, phone: string, password: string) => {
+  const register = async (name: string, email: string, phone: string, password: string, termsAccepted: boolean) => {
     try {
       setError(null);
       setIsLoading(true);
       
-      const { user, token } = await authService.register({ name, email, phone, password });
+      const { user, token } = await authService.register({ name, email, phone, password, termsAccepted });
       
       // Ensure we have both user and token before proceeding
       if (!user || !token) {

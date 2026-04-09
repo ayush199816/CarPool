@@ -36,7 +36,7 @@ export interface AuthContextType {
   isLoading: boolean;
   error: string | null;
   login: (email: string, password: string) => Promise<{ user: User; token: string }>;
-  register: (name: string, email: string, phone: string, password: string) => Promise<{ user: User; token: string }>;
+  register: (name: string, email: string, phone: string, password: string, termsAccepted: boolean) => Promise<{ user: User; token: string }>;
   logout: () => Promise<void>;
   updateUser: (userData: Partial<User>) => void;
   updateVerification: (verificationData: VerificationStatus) => Promise<void>;

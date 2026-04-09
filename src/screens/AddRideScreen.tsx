@@ -20,6 +20,8 @@ const AddRideScreen = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [vehicles, setVehicles] = useState<any[]>([]);
   const [selectedVehicleId, setSelectedVehicleId] = useState<string>('');
+  const [selectedVehicle, setSelectedVehicle] = useState<any>(null);
+  const [submitError, setSubmitError] = useState<string>('');
   
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
@@ -494,7 +496,10 @@ const AddRideScreen = () => {
                 styles.vehicleOption,
                 selectedVehicleId === vehicle._id && styles.vehicleOptionSelected
               ]}
-              onPress={() => setSelectedVehicleId(vehicle._id)}
+              onPress={() => {
+                setSelectedVehicleId(vehicle._id);
+                setSelectedVehicle(vehicle);
+              }}
             >
               <Text style={styles.vehicleText}>
                 {vehicle.make} {vehicle.model} ({vehicle.registrationNumber})

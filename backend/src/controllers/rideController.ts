@@ -203,6 +203,14 @@ export const createRide = async (req: Request, res: Response) => {
       });
     }
     
+    // Validate available seats against vehicle capacity
+    const maxSeats = Math.max(1, vehicle.seater - 2);
+    if (parseInt(availableSeats) > maxSeats) {
+      return res.status(400).json({
+        message: `Maximum seats allowed for this ${vehicle.seater}-seater vehicle is ${maxSeats} (seater - 2)`
+      });
+    }
+
     // Validate travel date is in the future
     if (new Date(travelDate) < new Date()) {
       return res.status(400).json({ message: 'Travel date must be in the future' });

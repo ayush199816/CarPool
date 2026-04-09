@@ -13,6 +13,10 @@ export interface VehicleVerification {
     model: string;
     year: number;
     licensePlate: string;
+    seater: number;
+    insuranceProvider: string;
+    insuranceNumber: string;
+    insuranceExpiry: string;
   };
   documentUrl: string;
   status: 'pending' | 'verified' | 'rejected';

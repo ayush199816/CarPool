@@ -14,7 +14,8 @@ const RegisterScreen = () => {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  
+  const [termsAccepted, setTermsAccepted] = useState(false);
+
   // Debug: Log when component renders
   console.log('RegisterScreen rendering');
   
@@ -65,9 +66,17 @@ const RegisterScreen = () => {
       return;
     }
 
+    // Validate terms acceptance
+    if (!termsAccepted) {
+      const errorMsg = 'Please accept the terms and conditions';
+      console.error('Validation error:', errorMsg);
+      Alert.alert('Error', errorMsg);
+      return;
+    }
+
     try {
-      console.log('Calling register function with:', { name, email, phone });
-      await register(name, email, phone, password);
+      console.log('Calling register function with:', { name, email, phone, termsAccepted });
+      await register(name, email, phone, password, termsAccepted);
       console.log('Registration successful');
       // On successful registration, the AuthContext will update the user state
       // and the AppNavigator will handle the navigation based on the auth state
@@ -173,8 +182,21 @@ const RegisterScreen = () => {
             />
           </View>
 
-          <TouchableOpacity 
-            style={[styles.button, isLoading ? styles.buttonDisabled : null]} 
+          <TouchableOpacity
+            style={styles.checkboxContainer}
+            onPress={() => setTermsAccepted(!termsAccepted)}
+            disabled={isLoading}
+          >
+            <View style={[styles.checkbox, termsAccepted && styles.checkboxChecked]}>
+              {termsAccepted && <Text style={styles.checkboxMark}>✓</Text>}
+            </View>
+            <Text style={styles.checkboxText}>
+              I agree to the <Text style={styles.checkboxLink}>Terms and Conditions</Text>
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.button, isLoading ? styles.buttonDisabled : null]}
             onPress={handleRegister}
             disabled={isLoading}
           >
@@ -292,6 +314,40 @@ const styles = StyleSheet.create({
   errorText: {
     color: '#d32f2f',
     fontSize: 14,
+  },
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginVertical: 10,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderWidth: 1,
+    borderColor: '#007AFF',
+    borderRadius: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+    marginTop: 2,
+  },
+  checkboxChecked: {
+    backgroundColor: '#007AFF',
+  },
+  checkboxMark: {
+    color: '#007AFF',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  checkboxText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#333',
+    lineHeight: 20,
+  },
+  checkboxLink: {
+    color: '#007AFF',
+    textDecorationLine: 'underline',
   },
 });
 
